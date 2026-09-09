@@ -243,6 +243,8 @@ module debug import cvw::*; #(parameter cvw_t P) (
   logic NextDebugGPREnable;
   logic NextDebugFPREnable;
 
+  logic [15:0] RegNO;
+
   // Abstract Commands:
   // 0: Access Register Command
   // 1: Quick Access
@@ -626,6 +628,9 @@ module debug import cvw::*; #(parameter cvw_t P) (
   // accesses through the abstract command interface.
   // ------------------------------------------------------------------
   // verilator lint_off WIDTH
+
+  assign RegNO = DMIDATA[15:0];
+
   always_comb begin
     ValidCommand         = 0;
     NextDebugGPREnable   = 0;
@@ -633,29 +638,50 @@ module debug import cvw::*; #(parameter cvw_t P) (
     NextDebugCSREnable   = 0;
 
     if (DMIADDR == COMMAND) begin
-      case (DMIDATA[15:0]) inside
+      case (RegNO) inside
         // GPRs
-        [16'h1000:16'h101f]: begin
+        // [16'h1000:16'h101f]: begin
+        //   ValidCommand       = 1;
+        //   NextDebugGPREnable = 1;
+        // end
+
+        [16'h1000:16'h100f]: begin
           ValidCommand       = 1;
           NextDebugGPREnable = 1;
         end
 
+        //
+        [16'h1010:16'h101f]: begin
+          if (~P.E_SUPPORTED) begin
+            ValidCommand       = 1;
+            NextDebugGPREnable = 1;
+          end
+        end
+
         // FPRs
         [16'h1020:16'h103f]: begin
-          ValidCommand       = 1;
-          NextDebugFPREnable = 1;
+          if (P.F_SUPPORTED) begin
+            ValidCommand       = 1;
+            NextDebugFPREnable = 1;
+          end
         end
 
         // ------------------------------------------------------------------
         // Machine CSRs (unconditional portion)
         // ------------------------------------------------------------------
         MVENDORID, MARCHID, MIMPID, MHARTID, MCONFIGPTR,
-          MSTATUS, MISA_ADR, MEDELEG, MIDELEG, MIE, MTVEC,
-          MCOUNTEREN, MCOUNTINHIBIT,
+          MSTATUS, MISA_ADR, MIE, MTVEC, MCOUNTINHIBIT,
           MSCRATCH, MEPC, MCAUSE, MTVAL, MIP: begin
             ValidCommand       = 1;
             NextDebugCSREnable = 1;
           end
+
+        MIDELEG, MEDELEG: begin
+          if (P.S_SUPPORTED) begin
+            ValidCommand = 1;
+            NextDebugCSREnable = 1;
+          end
+        end
 
         // Conditional Machine CSRs
         MSTATUSH: begin
@@ -665,19 +691,26 @@ module debug import cvw::*; #(parameter cvw_t P) (
           end
         end
 
-        MENVCFG, MENVCFGH: begin
+        MENVCFG, MCOUNTEREN: begin
           if (P.U_SUPPORTED) begin
             ValidCommand       = 1;
             NextDebugCSREnable = 1;
           end
         end
 
-        [PMPADDR0:PMPADDR0 + P.PMP_ENTRIES]: begin
+        MENVCFGH: begin
+          if (P.U_SUPPORTED & P.XLEN == 32) begin
+            ValidCommand       = 1;
+            NextDebugCSREnable = 1;
+          end
+        end
+
+        [PMPADDR0:PMPADDR0 + P.PMP_ENTRIES - 1]: begin
           ValidCommand       = 1;
           NextDebugCSREnable = 1;
         end
 
-        [PMPCFG0:PMPCFG0 + P.PMP_ENTRIES/4]: begin
+        [PMPCFG0:PMPCFG0 + P.PMP_ENTRIES/4 - 1]: begin
           if (!(P.XLEN == 64 && DMIDATA[0] != 0)) begin
             ValidCommand       = 1;
             NextDebugCSREnable = 1;
@@ -689,8 +722,10 @@ module debug import cvw::*; #(parameter cvw_t P) (
         // ------------------------------------------------------------------
         SSTATUS, STVEC, SIP, SIE, SSCRATCH,
           SEPC, SCAUSE, STVAL, SCOUNTEREN, SENVCFG: begin
-            ValidCommand       = 1;
-            NextDebugCSREnable = 1;
+            if (P.S_SUPPORTED) begin
+              ValidCommand       = 1;
+              NextDebugCSREnable = 1;
+            end
           end
 
         // Remaining conditional Supervisor CSRs
@@ -717,49 +752,75 @@ module debug import cvw::*; #(parameter cvw_t P) (
 
         // User floating-point CSRs
         FFLAGS, FRM, FCSR: begin
-          ValidCommand       = 1;
-          NextDebugCSREnable = 1;
+          if (P.F_SUPPORTED) begin
+            ValidCommand       = 1;
+            NextDebugCSREnable = 1;
+          end
+        end
+
+        TIME: begin
+          if (P.ZICNTR_SUPPORTED) begin
+            ValidCommand       = 1;
+            NextDebugCSREnable = 1;
+          end
         end
 
         // Counter CSRs
         TIMEH: begin
-          if (P.XLEN != 64) begin
+          if (P.ZICNTR_SUPPORTED & P.XLEN == 32) begin
+            ValidCommand       = 1;
+            NextDebugCSREnable = 1;
+          end
+        end
+
+        [MHPMEVENTBASE:MHPMEVENTLAST]: begin
+          if (P.ZICNTR_SUPPORTED) begin
             ValidCommand       = 1;
             NextDebugCSREnable = 1;
           end
         end
 
         // Performance counter CSRs
-        [MHPMCOUNTERBASE:MHPMCOUNTERBASE + P.COUNTERS]: begin
-          ValidCommand = 1;
-          NextDebugCSREnable = 1;
+        [MHPMCOUNTERBASE:MHPMCOUNTERBASE + P.COUNTERS - 1]: begin
+          if (P.ZICNTR_SUPPORTED & RegNO != MTIME) begin
+            ValidCommand = 1;
+            NextDebugCSREnable = 1;
+          end
         end
 
-        [HPMCOUNTERBASE:HPMCOUNTERBASE + P.COUNTERS]: begin
-          ValidCommand       = 1;
-          NextDebugCSREnable = 1;
-        end
-
-        [MHPMCOUNTERHBASE:MHPMCOUNTERHBASE + P.COUNTERS]: begin
-          if (P.XLEN == 32) begin
+        [HPMCOUNTERBASE:HPMCOUNTERBASE + P.COUNTERS - 1]: begin
+          if (P.ZICNTR_SUPPORTED) begin
             ValidCommand       = 1;
             NextDebugCSREnable = 1;
           end
         end
 
-        [HPMCOUNTERHBASE:HPMCOUNTERHBASE + P.COUNTERS]: begin
-          if (P.XLEN == 32) begin
+        [MHPMCOUNTERHBASE:MHPMCOUNTERHBASE + P.COUNTERS - 1]: begin
+          if (P.ZICNTR_SUPPORTED & (RegNO != MTIMEH) & P.XLEN == 32) begin
+            ValidCommand       = 1;
+            NextDebugCSREnable = 1;
+          end
+        end
+
+        [HPMCOUNTERHBASE:HPMCOUNTERHBASE + P.COUNTERS - 1]: begin
+          if (P.ZICNTR_SUPPORTED & P.XLEN == 32) begin
             ValidCommand       = 1;
             NextDebugCSREnable = 1;
           end
         end
 
         // Debug CSRs
-        DCSR, DPC, DSCRATCH0,
-          TSELECT, TDATA1, TDATA2, TINFO: begin
+        DCSR, DPC: begin
             ValidCommand       = 1;
             NextDebugCSREnable = 1;
           end
+
+        TSELECT, TDATA1, TDATA2, TINFO: begin
+          if (P.TRIG_SUPPORTED) begin
+            ValidCommand       = 1;
+            NextDebugCSREnable = 1;
+          end
+        end
 
         default: ;
       endcase
@@ -767,18 +828,40 @@ module debug import cvw::*; #(parameter cvw_t P) (
   end
   // verilator lint_on WIDTH
 
-  assign NextAARSize = DMIDATA[22:20];
+  // assign NextAARSize = DMIDATA[22:20];
 
-  if (P.XLEN == 32) begin
-    assign ValidSize = NextAARSize == 3'd2 | (NextAARSize == 3'd3 & NextDebugFPREnable & P.D_SUPPORTED) | NextAARSize == 3'd0;
-  end else begin
-    assign ValidSize = NextAARSize == 3'd2 | NextAARSize == 3'd3 | NextAARSize == 3'd0;
-  end
+  // if (P.XLEN == 32) begin
+  //   assign ValidSize = NextAARSize == 3'd2 | (NextAARSize == 3'd3 & NextDebugFPREnable & P.D_SUPPORTED) | NextAARSize == 3'd0;
+  // end else begin
+  //   assign ValidSize = NextAARSize == 3'd2 | NextAARSize == 3'd3 | NextAARSize == 3'd0;
+  // end
+
+  // always_comb begin
+  //   if (~DebugMode) CMDErr = 3'd4;
+  //   else if (ValidCommand & ~ValidSize) CMDErr = 3'd2;
+  //   else if (~ValidCommand & ValidSize) CMDErr = 3'd3;
+  //   else CMDErr = 3'd0;
+  // end
+
+
+  logic CommandWrite;
+  logic AccessRegCmd;
+
+  assign CommandWrite  = WriteRequest & (DMIADDR == COMMAND);
+  assign AccessRegCmd  = CommandWrite & (DMIDATA[31:24] == 8'd0);
+
+  assign NextAARSize   = DMIDATA[22:20];
+  assign ValidSize     = (NextAARSize == 3'd2)
+                       | (NextAARSize == 3'd3 & (P.XLEN == 64 | (NextDebugFPREnable & P.D_SUPPORTED)))
+                       | (NextAARSize == 3'd4 & NextDebugFPREnable & P.Q_SUPPORTED);
 
   always_comb begin
-    if (~DebugMode) CMDErr = 3'd4;
-    else if (ValidCommand & ~ValidSize) CMDErr = 3'd2;
-    else if (~ValidCommand & ValidSize) CMDErr = 3'd3;
-    else CMDErr = 3'd0;
+    CMDErr = 3'd0;
+    if (CommandWrite) begin
+      if (~DebugMode)                    CMDErr = 3'd4;
+      else if (~AccessRegCmd)            CMDErr = 3'd2; // quick/memory not implemented
+      else if (~ValidCommand)            CMDErr = 3'd3;
+      else if (~ValidSize)               CMDErr = 3'd2;
+    end
   end
 endmodule
