@@ -243,6 +243,8 @@ module debug import cvw::*; #(parameter cvw_t P) (
   logic NextDebugGPREnable;
   logic NextDebugFPREnable;
 
+  logic CommandWrite;
+  logic AccessRegCmd;
   logic [15:0] RegNO;
 
   // Abstract Commands:
@@ -828,25 +830,6 @@ module debug import cvw::*; #(parameter cvw_t P) (
   end
   // verilator lint_on WIDTH
 
-  // assign NextAARSize = DMIDATA[22:20];
-
-  // if (P.XLEN == 32) begin
-  //   assign ValidSize = NextAARSize == 3'd2 | (NextAARSize == 3'd3 & NextDebugFPREnable & P.D_SUPPORTED) | NextAARSize == 3'd0;
-  // end else begin
-  //   assign ValidSize = NextAARSize == 3'd2 | NextAARSize == 3'd3 | NextAARSize == 3'd0;
-  // end
-
-  // always_comb begin
-  //   if (~DebugMode) CMDErr = 3'd4;
-  //   else if (ValidCommand & ~ValidSize) CMDErr = 3'd2;
-  //   else if (~ValidCommand & ValidSize) CMDErr = 3'd3;
-  //   else CMDErr = 3'd0;
-  // end
-
-
-  logic CommandWrite;
-  logic AccessRegCmd;
-
   assign CommandWrite  = WriteRequest & (DMIADDR == COMMAND);
   assign AccessRegCmd  = CommandWrite & (DMIDATA[31:24] == 8'd0);
 
@@ -859,7 +842,7 @@ module debug import cvw::*; #(parameter cvw_t P) (
     CMDErr = 3'd0;
     if (CommandWrite) begin
       if (~DebugMode)                    CMDErr = 3'd4;
-      else if (~AccessRegCmd)            CMDErr = 3'd2; // quick/memory not implemented
+      else if (~AccessRegCmd)            CMDErr = 3'd2;
       else if (~ValidCommand)            CMDErr = 3'd3;
       else if (~ValidSize)               CMDErr = 3'd2;
     end
