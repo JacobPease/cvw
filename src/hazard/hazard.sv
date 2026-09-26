@@ -75,10 +75,10 @@ module hazard (
   //   For example, if a jump instruction completes in the execute stage, it will override DPC setting the Program Counter.
   //   DebugResume will only go high and flush the contents of the D and E stages when DPC has actually been changed, not just on
   //   any resume.
-  assign FlushDCause = TrapM | RetM | CSRWriteFenceM | BPWrongE | DebugHaltFlush | DebugResumeFlush | DebugResume;
-  assign FlushECause = TrapM | RetM | CSRWriteFenceM | (BPWrongE & ~(DivBusyE | FDivBusyE)) | DebugHaltFlush | DebugResumeFlush | DebugResume;
-  assign FlushMCause = TrapM | RetM | CSRWriteFenceM | DebugHaltFlush | DebugResumeFlush | DebugResume;
-  assign FlushWCause = TrapM & ~WFIInterruptedM | DebugResume;
+  assign FlushDCause = TrapM | RetM | CSRWriteFenceM | BPWrongE | DebugResumeFlush;
+  assign FlushECause = TrapM | RetM | CSRWriteFenceM | (BPWrongE & ~(DivBusyE | FDivBusyE)) | DebugResumeFlush;
+  assign FlushMCause = TrapM | RetM | CSRWriteFenceM | DebugHaltFlush | DebugResumeFlush;
+  assign FlushWCause = TrapM & ~WFIInterruptedM;
 
   // Stall causes
   //  Most data dependency stalls are identified in the decode stage

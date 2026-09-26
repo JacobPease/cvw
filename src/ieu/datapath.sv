@@ -111,7 +111,7 @@ module datapath import cvw::*;  #(parameter cvw_t P) (
     mux2 #(5) rfreadaddrmux (Rs1D, DebugRegAddr[4:0], DebugGPREnable, Rs1);
     mux2 #(5) rfwriteaddrmux (RdW, DebugRegAddr[4:0], DebugGPREnable, Rd);
     mux2 #(P.XLEN) rfwdatamux (ResultW, DebugRegWDATA, DebugGPREnable, Result);
-    assign RegWrite = DebugMode ? DebugRegWrite & DebugGPREnable : RegWriteW;
+    assign RegWrite = DebugMode & DebugRegWrite & DebugGPREnable | RegWriteW;
     // Return regfile read to Debug Module
     assign DebugR1D = R1D;
   end else begin

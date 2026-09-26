@@ -310,7 +310,7 @@ module csrd import cvw::*;  #(parameter cvw_t P) (
   // Flush before Halt while still running
   assign DebugHaltFlush = NextHalt;
   //assign DebugResumeFlush = (state == HALTED) & (state_n == RUNNING);
-  assign DebugUseDPC = DebugHaltFlush | DebugResumeFlush | DebugResume;
+  assign DebugUseDPC = DebugHaltFlush | DebugResumeFlush;
 
   // Flush after halt when running again.
   always_ff @(posedge clk) begin
