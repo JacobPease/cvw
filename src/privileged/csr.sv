@@ -105,7 +105,7 @@ module csr import cvw::*;  #(parameter cvw_t P) (
   input  logic [P.XLEN-1:0]        DebugRegWDATA,
   input  logic [11:0]              DebugRegAddr,
   input  logic                     DebugRegWrite,
-  output logic                     DebugResume, DebugHaltFlush, DebugResumeFlush,
+  output logic                     DebugHaltFlush, DebugResumeFlush,
   output logic                     DebugUseDPC,
   output logic [P.XLEN-1:0]        DPC,
   output logic                     DebugHaveReset,
@@ -327,7 +327,7 @@ module csr import cvw::*;  #(parameter cvw_t P) (
   if (P.DEBUG_SUPPORTED) begin : debug
     csrd #(P) csrd(.clk, .reset, .DebugHaltReq, .DebugResumeReq,
       .CSRDWriteM, .CSRWriteValM, .CSRAdrM, .InstrValid(InstrValidM), .InstrValidE, .CSRDReadValM, .PrivilegeModeW,
-      .DebugMode, .NextValidPCE, .PCM, .IllegalCSRDAccessM, .DebugResume, .DebugHaltFlush, .DebugResumeFlush,
+      .DebugMode, .NextValidPCE, .PCM, .IllegalCSRDAccessM, .DebugHaltFlush, .DebugResumeFlush,
       .DebugUseDPC, .DPC_REGW(DPC),
       .DebugHaveReset, .DebugHaveResetAck, .DebugResetHaltReq, .BreakpointFaultM,
       .DebugEBreakM, .DebugEBreakS, .DebugEBreakU,
@@ -338,7 +338,6 @@ module csr import cvw::*;  #(parameter cvw_t P) (
     assign DebugMode = 1'b0;
     assign CSRDReadValM = '0;
     assign IllegalCSRDAccessM = 1'b1;
-    assign DebugResume = 1'b0;
     assign DebugHaltFlush = 1'b0;
     assign DebugResumeFlush = 1'b0;
     assign DebugUseDPC = 1'b0;
@@ -358,7 +357,7 @@ module csr import cvw::*;  #(parameter cvw_t P) (
     trigger #(P) trigger(.clk, .reset,
       .CSRTrigWriteM, .CSRWriteValM, . CSRAdrM, .CSRTrigReadValM, .IllegalCSRTrigAccessM,
       .PCM, .InstrValid(InstrValidM), .PrivilegeModeW, .DebugMode,
-      .DebugResume, .BreakpointFaultM, .TriggerHalt);
+      .BreakpointFaultM, .TriggerHalt);
   end else begin
     assign CSRTrigReadValM = '0;
     assign IllegalCSRTrigAccessM = 1'b1;

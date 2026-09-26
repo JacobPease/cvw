@@ -97,7 +97,6 @@ module ifu import cvw::*;  #(parameter cvw_t P) (
   output logic                 InstrAccessFaultF,                        // Instruction access fault
   output logic                 ICacheAccess,                             // Report I$ read to performance counters
   output logic                 ICacheMiss,                               // Report I$ miss to performance counters
-  input  logic                 DebugResume,                              //
   input  logic                 DebugUseDPC,
   output logic [P.XLEN-1:0]    NextValidPCE,
   input  logic [P.XLEN-1:0]    DPC

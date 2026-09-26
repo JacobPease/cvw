@@ -34,7 +34,7 @@ module hazard (
   input  logic  FPUStallD, ExternalStall,
   input  logic  DivBusyE, FDivBusyE,
   input  logic  wfiM, IntPendingM,
-  input  logic  DebugMode, DebugResume, DebugHaltFlush, DebugResumeFlush,
+  input  logic  DebugMode, DebugHaltFlush, DebugResumeFlush,
   // Stall & flush outputs
   output logic StallF, StallD, StallE, StallM, StallW,
   output logic FlushD, FlushE, FlushM, FlushW

@@ -41,7 +41,6 @@ module trigger import cvw::*;  #(parameter cvw_t P) (
   input logic               InstrValid,
   input logic [1:0]         PrivilegeModeW,
   input logic               DebugMode,
-  input logic               DebugResume,
   input logic               BreakpointFaultM,
   output logic              TriggerHalt
 );

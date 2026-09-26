@@ -186,7 +186,6 @@ module wallypipelinedcore import cvw::*; #(parameter cvw_t P) (
   // Debug Signals
   logic [P.XLEN-1:0]             DebugR1D;
   logic [P.FLEN-1:0]             DebugFRD1D;
-  logic                          DebugResume;
   logic                          DebugHaltFlush, DebugResumeFlush;
   logic [P.XLEN-1:0]             NextValidPCE;
   logic                          DebugUseDPC;
@@ -214,7 +213,7 @@ module wallypipelinedcore import cvw::*; #(parameter cvw_t P) (
     .STATUS_MPP, .ENVCFG_PBMTE, .ENVCFG_ADUE, .ITLBWriteF, .sfencevmaM, .ITLBMissOrUpdateAF,
     // pmp/pma (inside mmu) signals.
     .PMPCFG_ARRAY_REGW,  .PMPADDR_ARRAY_REGW, .InstrAccessFaultF,
-    .DebugResume, .DebugUseDPC, .NextValidPCE, .DPC
+    .DebugUseDPC, .NextValidPCE, .DPC
   );
 
   // integer execution unit: integer register file, datapath and controller
@@ -306,7 +305,7 @@ module wallypipelinedcore import cvw::*; #(parameter cvw_t P) (
     .FPUStallD, .ExternalStall,
     .DivBusyE, .FDivBusyE,
     .wfiM, .IntPendingM,
-    .DebugMode, .DebugResume, .DebugHaltFlush, .DebugResumeFlush,
+    .DebugMode, .DebugHaltFlush, .DebugResumeFlush,
     // Stall & flush outputs
     .StallF, .StallD, .StallE, .StallM, .StallW,
     .FlushD, .FlushE, .FlushM, .FlushW);
@@ -336,7 +335,7 @@ module wallypipelinedcore import cvw::*; #(parameter cvw_t P) (
       .FRM_REGW, .ENVCFG_CBE, .ENVCFG_PBMTE, .ENVCFG_ADUE, .wfiM, .IntPendingM, .BigEndianM,
       .DebugMode, .DebugHaltReq, .DebugResumeReq, .DebugCSREnable,
       .DebugRegWDATA(DebugRegWDATA[P.XLEN-1:0]), .DebugRegAddr, .DebugRegWrite,
-      .DebugHaltFlush, .DebugResumeFlush, .DebugResume, .DebugUseDPC, .DPC,
+      .DebugHaltFlush, .DebugResumeFlush, .DebugUseDPC, .DPC,
       .DebugHaveReset, .DebugHaveResetAck, .DebugResetHaltReq,
       .IEUAdrM, .PCSrcE);
 
@@ -347,7 +346,7 @@ module wallypipelinedcore import cvw::*; #(parameter cvw_t P) (
             ENVCFG_CBE, ENVCFG_PBMTE, ENVCFG_ADUE,
             EPCM, TrapVectorM, RetM, TrapM,
             sfencevmaM, BigEndianM, wfiM, IntPendingM, DebugMode,
-            DebugResume, DebugHaltFlush, DebugResumeFlush, DPC, DebugHaveReset} = '0;
+            DebugHaltFlush, DebugResumeFlush, DebugUseDPC, DPC, DebugHaveReset} = '0;
   end
 
   // multiply/divide unit

@@ -44,7 +44,7 @@ module csrd import cvw::*;  #(parameter cvw_t P) (
   output logic              DebugMode,
   input logic [P.XLEN-1:0]  NextValidPCE, PCM,
   output logic              IllegalCSRDAccessM,
-  output logic              DebugResume, DebugHaltFlush, DebugResumeFlush,
+  output logic              DebugHaltFlush, DebugResumeFlush,
   output logic              DebugUseDPC,
   output [P.XLEN-1:0]       DPC_REGW,
   output logic              DebugHaveReset,
@@ -279,7 +279,7 @@ module csrd import cvw::*;  #(parameter cvw_t P) (
       RUNNING: begin
         if (DebugHaltReq & InstrValid & ~StallW) state_n = HALTED;
         else if (ebreak) state_n = HALTED;
-        else if (step & InstrValid & ~DebugResume & ~StallW) state_n = HALTED;
+        else if (step & InstrValid & ~DebugResumeFlush & ~StallW) state_n = HALTED;
         else if (ResetHaltReqValid) state_n = HALTED;
         else state_n = RUNNING;
         end
@@ -345,34 +345,6 @@ module csrd import cvw::*;  #(parameter cvw_t P) (
   assign ResetHaltReqCondition = DebugResetHaltReq & DebugHaveReset;
   assign ResetHaltReqValid = ResetHaltReqCondition & InstrValidE;
   assign ResetHaltReqEnable = ResetHaltReqCondition & NextHalt;
-
-  // -----------------------------------------------------------------------------
-  // DebugResume: internal pulse when leaving HALTED.
-  // Needs to be delayed so StallF can be low
-  // -----------------------------------------------------------------------------
-
-  always_ff @(posedge clk) begin
-    if (reset) begin
-      DebugResume <= 0;
-    end else begin
-      DebugResume <= (state == HALTED) & (state_n == RUNNING) & DPCset;
-    end
-  end
-
-   // -----------------------------------------------------------------------------
-   // DPCset: track whether DPC was explicitly written while halted (optional).
-   // Clear when leaving HALTED. Set on CSR write to DPC while HALTED.
-   // -----------------------------------------------------------------------------
-
-   always_ff @(posedge clk) begin
-      if (reset) begin
-         DPCset <= 1'b0;
-      end else if (state_n != HALTED) begin
-         DPCset <= 1'b0;
-      end else if ((state == HALTED) & CSRDWriteM & (CSRAdrM == DPC)) begin
-         DPCset <= 1'b1;
-      end
-   end
 
    // -----------------------------------------------------------------------------
    // Halt cause: latch on entry into HALTED.
