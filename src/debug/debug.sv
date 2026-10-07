@@ -572,11 +572,6 @@ module debug import cvw::*; #(parameter cvw_t P) (
     .PREADY, .PRDATA, .PSLVERR
   );
 
-  // assign NextAARSize   = DMIDATA[22:20];
-  // assign ValidSize     = (NextAARSize == 3'd2)
-  //                      | (NextAARSize == 3'd3 & (P.XLEN == 64 | (NextDebugFPREnable & P.D_SUPPORTED)))
-  //                      | (NextAARSize == 3'd4 & NextDebugFPREnable & P.Q_SUPPORTED);
-
   always_comb begin
     CMDErr = 3'd0;
     if (NewCommand) begin
