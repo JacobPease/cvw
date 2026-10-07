@@ -28,116 +28,48 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 module debug import cvw::*; #(parameter cvw_t P) (
-  input  logic              clk,
-  input  logic              reset,
+  input  logic                 clk,
+  input  logic                 reset,
 
   // CPU Signals
-  output logic              DebugNDMReset,
-  output logic              DebugHaltReq,
-  output logic              DebugResumeReq,
-  input  logic              DebugMode,
-  output logic              DebugGPREnable,
-  output logic              DebugCSREnable,
-  output logic              DebugFPREnable,
+  output logic                 DebugNDMReset,
+  output logic                 DebugHaltReq,
+  output logic                 DebugResumeReq,
+  input  logic                 DebugMode,
 
   // DMI REQUEST
-  input  logic [6:0]         DMIADDR,
-  input  logic [31:0]        DMIDATA,
-  input  logic [1:0]         DMIOP,
-  input  logic               DMIREADY,
-  input  logic               DMIVALID,
+  input  logic [6:0]           DMIADDR,
+  input  logic [31:0]          DMIDATA,
+  input  logic [1:0]           DMIOP,
+  input  logic                 DMIREADY,
+  input  logic                 DMIVALID,
 
   // DMI RESPONSE
-  output logic [31:0]       DMIRSPDATA,
-  output logic [1:0]        DMIRSPOP,
-  output logic              DMIRSPREADY,
-  output logic              DMIRSPVALID,
+  output logic [31:0]          DMIRSPDATA,
+  output logic [1:0]           DMIRSPOP,
+  output logic                 DMIRSPREADY,
+  output logic                 DMIRSPVALID,
 
-  // Reading and Writing Registers
-  input  logic [P.LLEN-1:0] DebugRegRDATA,
-  output logic [P.LLEN-1:0] DebugRegWDATA,
-  output logic [11:0]       DebugRegAddr,
-  output logic              DebugRegWrite,
+  // APB Requester interface
+  output logic                 PCLK, PRESETn,
+  output logic                 PENABLE,
+  output logic                 PSELRegister,
+  output logic                 PSELMemory,
+  output logic                 PWRITE,
+  output logic [P.LLEN-1:0]    PWDATA,
+  output logic [P.XLEN/8-1:0]  PSTRB,
+  output logic [P.PA_BITS-1:0] PADDR,
+
+  // APB Completer interface
+  input  logic                 PREADY,
+  input  logic [P.LLEN-1:0]    PRDATA,
+  input  logic                 PSLVERR,
 
   // Run State
-  input  logic              DebugHaveReset,
-  output logic              DebugHaveResetAck,
-  output logic              DebugResetHaltReq
+  input  logic                 DebugHaveReset,
+  output logic                 DebugHaveResetAck,
+  output logic                 DebugResetHaltReq
 );
-
-  // Available CSRs
-  // This is based on the current configuration. All possible CSR
-  // addresses are stored here in localparams and certain addresses
-  // are included in the cases, if they are supported.
-
-  // Machine CSRs
-  localparam MVENDORID     = 16'h0F11;
-  localparam MARCHID       = 16'h0F12;
-  localparam MIMPID        = 16'h0F13;
-  localparam MHARTID       = 16'h0F14;
-  localparam MCONFIGPTR    = 16'h0F15;
-  localparam MSTATUS       = 16'h0300;
-  localparam MISA_ADR      = 16'h0301;
-  localparam MEDELEG       = 16'h0302;
-  localparam MIDELEG       = 16'h0303;
-  localparam MIE           = 16'h0304;
-  localparam MTVEC         = 16'h0305;
-  localparam MCOUNTEREN    = 16'h0306;
-  localparam MENVCFG       = 16'h030A;
-  localparam MSTATUSH      = 16'h0310;
-  localparam MENVCFGH      = 16'h031A;
-  localparam MCOUNTINHIBIT = 16'h0320;
-  localparam MSCRATCH      = 16'h0340;
-  localparam MEPC          = 16'h0341;
-  localparam MCAUSE        = 16'h0342;
-  localparam MTVAL         = 16'h0343;
-  localparam MIP           = 16'h0344;
-  localparam PMPCFG0       = 16'h03A0;
-  // .. up to 15 more at consecutive addresses
-  localparam PMPADDR0      = 16'h03B0;
-  // ... up to 63 more at consecutive addresses
-  /* verilator lint_off UNUSEDPARAM */
-  localparam TSELECT       = 16'h07A0;
-  localparam TDATA1        = 16'h07A1;
-  localparam TDATA2        = 16'h07A2;
-  localparam TDATA3        = 16'h07A3;
-  localparam TINFO         = 16'h07A4;
-  localparam DCSR          = 16'h07B0;
-  localparam DPC           = 16'h07B1;
-  localparam DSCRATCH0     = 16'h07B2;
-  localparam DSCRATCH1     = 16'h07B3;
-
-  // Supervisor CSRs
-  localparam SSTATUS    = 16'h0100;
-  localparam SIE        = 16'h0104;
-  localparam STVEC      = 16'h0105;
-  localparam SCOUNTEREN = 16'h0106;
-  localparam SENVCFG    = 16'h010A;
-  localparam SSCRATCH   = 16'h0140;
-  localparam SEPC       = 16'h0141;
-  localparam SCAUSE     = 16'h0142;
-  localparam STVAL      = 16'h0143;
-  localparam SIP        = 16'h0144;
-  localparam STIMECMP   = 16'h014D;
-  localparam STIMECMPH  = 16'h015D;
-  localparam SATP       = 16'h0180;
-
-  // User CSRs
-  localparam FFLAGS = 16'h0001;
-  localparam FRM    = 16'h0002;
-  localparam FCSR   = 16'h0003;
-
-  // Counter CSRs
-  localparam MHPMCOUNTERBASE  = 16'h0B00;
-  localparam MTIME            = 16'h0B01;               // this is a memory-mapped register; no such CSR exists, and access should faul;
-  localparam MHPMCOUNTERHBASE = 16'h0B80;
-  localparam MTIMEH           = 16'h0B81;               // this is a memory-mapped register; no such CSR exists, and access should fault
-  localparam MHPMEVENTBASE    = 16'h0323;
-  localparam MHPMEVENTLAST    = 16'h033F;
-  localparam HPMCOUNTERBASE   = 16'h0C00;
-  localparam HPMCOUNTERHBASE  = 16'h0C80;
-  localparam TIME             = 16'h0C01;
-  localparam TIMEH            = 16'h0C81;
 
   typedef enum logic [6:0] {
     DATA0 = 7'h04,
@@ -211,7 +143,7 @@ module debug import cvw::*; #(parameter cvw_t P) (
 
   // Abstract Register signals
   logic [7:0]  CMDType;
-  logic [2:0]  AARSize;
+  // logic [2:0]  AARSize;
   logic [2:0]  NextAARSize;
   logic        AARPostIncrement;
 
@@ -379,7 +311,7 @@ module debug import cvw::*; #(parameter cvw_t P) (
       if (WriteRequest & (DMIADDR == DATA0)) begin
         Data0 <= DMIDATA;
       end else if (ReadRegister) begin
-        Data0 <= DebugRegRDATA[31:0];
+        Data0 <= PRDATA[31:0];
       end
     end
   end
@@ -394,7 +326,7 @@ module debug import cvw::*; #(parameter cvw_t P) (
         if (WriteRequest & (DMIADDR == DATA1)) begin
           Data1 <= DMIDATA;
         end else if (ReadRegister) begin
-          Data1 <= DebugRegRDATA[63:32];
+          Data1 <= PRDATA[63:32];
         end
       end
     end
@@ -421,6 +353,8 @@ module debug import cvw::*; #(parameter cvw_t P) (
                      AbstractCS[7:0]}; // Only RelaxedPriv and CMDErr are writeable
     end else if (WriteRequest & (DMIADDR == COMMAND)) begin
       AbstractCS <= {AbstractCS[31:11], AbstractCS[10:8] == 3'b0 ? CMDErr : AbstractCS[10:8], AbstractCS[7:0]};
+    end else if (StartCommand & PREADY) begin
+      AbstractCS[10:8] <= CMDErr;
     end
   end
 
@@ -597,254 +531,59 @@ module debug import cvw::*; #(parameter cvw_t P) (
     end
   end
 
-  assign AARSize = Command[22:20];
-  assign DebugRegWrite = Command[16] & StartCommand & DebugMode;
-
-  // Covering both 32 bit and 64 bit architectures.
-  if (P.LLEN > 32) begin
-    assign DebugRegWDATA = AARSize == 3'd2 ? {32'h0, Data0} : {Data1, Data0};
-  end else begin
-    assign DebugRegWDATA = Data0;
-  end
-
-  always_ff @(posedge clk) begin
-    if (reset) begin
-      StartCommand <= 0;
-      DebugRegAddr <= '0;
-      DebugCSREnable <= 0;
-      DebugFPREnable <= 0;
-      DebugGPREnable <= 0;
-    end else begin
-      StartCommand <= DMIVALID & DMIRSPREADY & (DMIADDR == COMMAND) & ~|CMDErr & DMActive & DebugMode;
-      DebugRegAddr <= DMIDATA[11:0];
-      DebugGPREnable <= NextDebugGPREnable & DebugMode;
-      DebugFPREnable <= NextDebugFPREnable & DebugMode;
-      DebugCSREnable <= NextDebugCSREnable & DebugMode;
-    end
-  end
-
   // ------------------------------------------------------------------
   // RISC-V Debug Specification v1.0 Access Register Commands
   // Decodes abstract register-access commands from the Debug Module
   // COMMAND register (Section 3.7.1.1).  Supports GPR, FPR, and CSR
   // accesses through the abstract command interface.
   // ------------------------------------------------------------------
-  // verilator lint_off WIDTH
 
-  assign RegNO = DMIDATA[15:0];
+  assign CommandWrite = WriteRequest & (DMIADDR == COMMAND);
 
-  always_comb begin
-    ValidCommand         = 0;
-    NextDebugGPREnable   = 0;
-    NextDebugFPREnable   = 0;
-    NextDebugCSREnable   = 0;
+  logic AARException;
+  logic NewCommand;
 
-    if (DMIADDR == COMMAND) begin
-      case (RegNO) inside
-        // GPRs
-        // [16'h1000:16'h101f]: begin
-        //   ValidCommand       = 1;
-        //   NextDebugGPREnable = 1;
-        // end
-
-        [16'h1000:16'h100f]: begin
-          ValidCommand       = 1;
-          NextDebugGPREnable = 1;
-        end
-
-        //
-        [16'h1010:16'h101f]: begin
-          if (~P.E_SUPPORTED) begin
-            ValidCommand       = 1;
-            NextDebugGPREnable = 1;
-          end
-        end
-
-        // FPRs
-        [16'h1020:16'h103f]: begin
-          if (P.F_SUPPORTED) begin
-            ValidCommand       = 1;
-            NextDebugFPREnable = 1;
-          end
-        end
-
-        // ------------------------------------------------------------------
-        // Machine CSRs (unconditional portion)
-        // ------------------------------------------------------------------
-        MVENDORID, MARCHID, MIMPID, MHARTID, MCONFIGPTR,
-          MSTATUS, MISA_ADR, MIE, MTVEC, MCOUNTINHIBIT,
-          MSCRATCH, MEPC, MCAUSE, MTVAL, MIP: begin
-            ValidCommand       = 1;
-            NextDebugCSREnable = 1;
-          end
-
-        MIDELEG, MEDELEG: begin
-          if (P.S_SUPPORTED) begin
-            ValidCommand = 1;
-            NextDebugCSREnable = 1;
-          end
-        end
-
-        // Conditional Machine CSRs
-        MSTATUSH: begin
-          if (P.XLEN == 32) begin
-            ValidCommand       = 1;
-            NextDebugCSREnable = 1;
-          end
-        end
-
-        MENVCFG, MCOUNTEREN: begin
-          if (P.U_SUPPORTED) begin
-            ValidCommand       = 1;
-            NextDebugCSREnable = 1;
-          end
-        end
-
-        MENVCFGH: begin
-          if (P.U_SUPPORTED & P.XLEN == 32) begin
-            ValidCommand       = 1;
-            NextDebugCSREnable = 1;
-          end
-        end
-
-        [PMPADDR0:PMPADDR0 + P.PMP_ENTRIES - 1]: begin
-          ValidCommand       = 1;
-          NextDebugCSREnable = 1;
-        end
-
-        [PMPCFG0:PMPCFG0 + P.PMP_ENTRIES/4 - 1]: begin
-          if (!(P.XLEN == 64 && DMIDATA[0] != 0)) begin
-            ValidCommand       = 1;
-            NextDebugCSREnable = 1;
-          end
-        end
-
-        // ------------------------------------------------------------------
-        // Supervisor CSRs
-        // ------------------------------------------------------------------
-        SSTATUS, STVEC, SIP, SIE, SSCRATCH,
-          SEPC, SCAUSE, STVAL, SCOUNTEREN, SENVCFG: begin
-            if (P.S_SUPPORTED) begin
-              ValidCommand       = 1;
-              NextDebugCSREnable = 1;
-            end
-          end
-
-        // Remaining conditional Supervisor CSRs
-        SATP: begin
-          if (P.VIRTMEM_SUPPORTED) begin
-            ValidCommand       = 1;
-            NextDebugCSREnable = 1;
-          end
-        end
-
-        STIMECMP: begin
-          if (P.SSTC_SUPPORTED) begin
-            ValidCommand       = 1;
-            NextDebugCSREnable = 1;
-          end
-        end
-
-        STIMECMPH: begin
-          if (P.SSTC_SUPPORTED && P.XLEN == 32) begin
-            ValidCommand       = 1;
-            NextDebugCSREnable = 1;
-          end
-        end
-
-        // User floating-point CSRs
-        FFLAGS, FRM, FCSR: begin
-          if (P.F_SUPPORTED) begin
-            ValidCommand       = 1;
-            NextDebugCSREnable = 1;
-          end
-        end
-
-        TIME: begin
-          if (P.ZICNTR_SUPPORTED) begin
-            ValidCommand       = 1;
-            NextDebugCSREnable = 1;
-          end
-        end
-
-        // Counter CSRs
-        TIMEH: begin
-          if (P.ZICNTR_SUPPORTED & P.XLEN == 32) begin
-            ValidCommand       = 1;
-            NextDebugCSREnable = 1;
-          end
-        end
-
-        [MHPMEVENTBASE:MHPMEVENTLAST]: begin
-          if (P.ZICNTR_SUPPORTED) begin
-            ValidCommand       = 1;
-            NextDebugCSREnable = 1;
-          end
-        end
-
-        // Performance counter CSRs
-        [MHPMCOUNTERBASE:MHPMCOUNTERBASE + P.COUNTERS - 1]: begin
-          if (P.ZICNTR_SUPPORTED & RegNO != MTIME) begin
-            ValidCommand = 1;
-            NextDebugCSREnable = 1;
-          end
-        end
-
-        [HPMCOUNTERBASE:HPMCOUNTERBASE + P.COUNTERS - 1]: begin
-          if (P.ZICNTR_SUPPORTED) begin
-            ValidCommand       = 1;
-            NextDebugCSREnable = 1;
-          end
-        end
-
-        [MHPMCOUNTERHBASE:MHPMCOUNTERHBASE + P.COUNTERS - 1]: begin
-          if (P.ZICNTR_SUPPORTED & (RegNO != MTIMEH) & P.XLEN == 32) begin
-            ValidCommand       = 1;
-            NextDebugCSREnable = 1;
-          end
-        end
-
-        [HPMCOUNTERHBASE:HPMCOUNTERHBASE + P.COUNTERS - 1]: begin
-          if (P.ZICNTR_SUPPORTED & P.XLEN == 32) begin
-            ValidCommand       = 1;
-            NextDebugCSREnable = 1;
-          end
-        end
-
-        // Debug CSRs
-        DCSR, DPC: begin
-            ValidCommand       = 1;
-            NextDebugCSREnable = 1;
-          end
-
-        TSELECT, TDATA1, TDATA2, TINFO: begin
-          if (P.TRIG_SUPPORTED) begin
-            ValidCommand       = 1;
-            NextDebugCSREnable = 1;
-          end
-        end
-
-        default: ;
-      endcase
+  always_ff @(posedge clk) begin
+    if (reset) begin
+      NewCommand <= 1'b0;
+    end else if (CommandWrite) begin
+      NewCommand <= 1'b1;
+    end else if (NewCommand & PREADY) begin
+      NewCommand <= 1'b0;
     end
   end
-  // verilator lint_on WIDTH
 
-  assign CommandWrite  = WriteRequest & (DMIADDR == COMMAND);
-  assign AccessRegCmd  = CommandWrite & (DMIDATA[31:24] == 8'd0);
+  always_ff @(posedge clk) begin
+    if (reset) begin
+      StartCommand <= 0;
+    end else begin
+      StartCommand <= CommandWrite & DMIRSPREADY & ~|CMDErr & DMActive & DebugMode;
+    end
+  end
 
-  assign NextAARSize   = DMIDATA[22:20];
-  assign ValidSize     = (NextAARSize == 3'd2)
-                       | (NextAARSize == 3'd3 & (P.XLEN == 64 | (NextDebugFPREnable & P.D_SUPPORTED)))
-                       | (NextAARSize == 3'd4 & NextDebugFPREnable & P.Q_SUPPORTED);
+  assign NextCommand = CommandWrite ? DMIDATA : '0;
+
+  debug_apb_requester #(P) debug_apb(.clk, .reset,
+    .NextCommand, .Command, .StartCommand, .CommandWrite, .Data0, .Data1,
+    .ValidCommand, .ValidSize, .AARException,
+    .PCLK, .PRESETn, .PENABLE,
+    .PSELRegister, .PSELMemory,
+    .PWRITE, .PWDATA, .PSTRB, .PADDR,
+    .PREADY, .PRDATA, .PSLVERR
+  );
+
+  // assign NextAARSize   = DMIDATA[22:20];
+  // assign ValidSize     = (NextAARSize == 3'd2)
+  //                      | (NextAARSize == 3'd3 & (P.XLEN == 64 | (NextDebugFPREnable & P.D_SUPPORTED)))
+  //                      | (NextAARSize == 3'd4 & NextDebugFPREnable & P.Q_SUPPORTED);
 
   always_comb begin
     CMDErr = 3'd0;
-    if (CommandWrite) begin
-      if (~DebugMode)                    CMDErr = 3'd4;
-      else if (~AccessRegCmd)            CMDErr = 3'd2;
-      else if (~ValidCommand)            CMDErr = 3'd3;
-      else if (~ValidSize)               CMDErr = 3'd2;
+    if (NewCommand) begin
+      if (~DebugMode)                      CMDErr = 3'd4;
+      else if (~ValidCommand | ~ValidSize) CMDErr = 3'd2;
+      else if (AARException)               CMDErr = 3'd3;
+      else                                 CMDErr = 3'd0;
     end
   end
 endmodule

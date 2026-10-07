@@ -48,16 +48,27 @@ module wallypipelinedcore import cvw::*; #(parameter cvw_t P) (
    input  logic                  ExternalStall,
    output logic                  DebugMode,
    input  logic                  DebugHaltReq, DebugResumeReq,
-   input  logic                  DebugGPREnable,
-   input  logic                  DebugCSREnable,
-   input  logic                  DebugFPREnable,
-   output logic [P.LLEN-1:0]     DebugRegRDATA,
-   input  logic [P.LLEN-1:0]     DebugRegWDATA,
-   input  logic [11:0]           DebugRegAddr,
-   input  logic                  DebugRegWrite,
+   // input  logic                  DebugGPREnable, // REPLACE WITH APB
+   // input  logic                  DebugCSREnable, // REPLACE WITH APB
+   // input  logic                  DebugFPREnable, // REPLACE WITH APB
+   // output logic [P.LLEN-1:0]     DebugRegRDATA,  // REPLACE WITH APB
+   // input  logic [P.LLEN-1:0]     DebugRegWDATA,  // REPLACE WITH APB
+   // input  logic [11:0]           DebugRegAddr,   // REPLACE WITH APB
+   // input  logic                  DebugRegWrite,  // REPLACE WITH APB
    output logic                  DebugHaveReset,
    input  logic                  DebugHaveResetAck,
-   input  logic                  DebugResetHaltReq
+   input  logic                  DebugResetHaltReq,
+   // Debug APB Interface for Abstract Access Register Commands
+   input  logic                  PCLK, PRESETn,
+   input  logic                  PENABLE,
+   input  logic                  PSELRegister,
+   input  logic                  PWRITE,
+   input  logic [P.LLEN-1:0]     PWDATA,
+   input  logic [15:0]           PADDR,
+   // APB Completer signals
+   output logic                  PREADY,
+   output logic [P.LLEN-1:0]     PRDATA,
+   output logic                  PSLVERR
 );
 
   logic                          StallF, StallD, StallE, StallM, StallW;
@@ -190,6 +201,16 @@ module wallypipelinedcore import cvw::*; #(parameter cvw_t P) (
   logic [P.XLEN-1:0]             NextValidPCE;
   logic                          DebugUseDPC;
   logic [P.XLEN-1:0]             DPC;
+  logic                          IllegalDebugCSRAccess;
+
+  //
+  logic                          DebugGPREnable; // REPLACE WITH APB
+  logic                          DebugCSREnable; // REPLACE WITH APB
+  logic                          DebugFPREnable; // REPLACE WITH APB
+  logic [P.LLEN-1:0]             DebugRegRDATA;  // REPLACE WITH APB
+  logic [P.LLEN-1:0]             DebugRegWDATA;  // REPLACE WITH APB
+  logic [11:0]                   DebugRegAddr;   // REPLACE WITH APB
+  logic                          DebugRegWrite;  // REPLACE WITH APB
 
   // instruction fetch unit: PC, branch prediction, instruction cache
   ifu #(P) ifu(.clk, .reset,
@@ -337,7 +358,7 @@ module wallypipelinedcore import cvw::*; #(parameter cvw_t P) (
       .DebugRegWDATA(DebugRegWDATA[P.XLEN-1:0]), .DebugRegAddr, .DebugRegWrite,
       .DebugHaltFlush, .DebugResumeFlush, .DebugUseDPC, .DPC,
       .DebugHaveReset, .DebugHaveResetAck, .DebugResetHaltReq,
-      .IEUAdrM, .PCSrcE);
+      .IEUAdrM, .PCSrcE, .IllegalDebugCSRAccess);
 
   end else begin
     assign {CSRReadValW, PrivilegeModeW,
@@ -399,20 +420,18 @@ module wallypipelinedcore import cvw::*; #(parameter cvw_t P) (
             FWriteDataM, FCvtIntResW, FIntDivResultW, FDivBusyE} = '0;
   end
 
-  if (P.DEBUG_SUPPORTED) begin
-    if (P.F_SUPPORTED) begin
-      if (P.FLEN < P.LLEN) begin
-        mux3 #(P.LLEN) debugregmux(DebugR1D, CSRReadValM, {{(P.LLEN-P.FLEN){1'b0}}, DebugFRD1D}, {DebugFPREnable, DebugCSREnable}, DebugRegRDATA);
-      end else if (P.XLEN < P.LLEN) begin
-        mux3 #(P.LLEN) debugregmux({{(P.LLEN - P.XLEN){1'b0}}, DebugR1D}, {{(P.LLEN - P.XLEN){1'b0}}, CSRReadValM}, DebugFRD1D, {DebugFPREnable, DebugCSREnable}, DebugRegRDATA);
-      end else begin
-        mux3 #(P.LLEN) debugregmux(DebugR1D, CSRReadValM, DebugFRD1D, {DebugFPREnable, DebugCSREnable}, DebugRegRDATA);
-      end
-    end else begin
-      mux2 #(P.XLEN) debugregmux(DebugR1D, CSRReadValM, DebugCSREnable, DebugRegRDATA);
-    end
+  if (P.DEBUG_SUPPORTED) begin : debug_apb
+    debug_apb_completer #(P) debug_apb(.PCLK, .PRESETn,
+      .PENABLE, .PSELRegister, .PWRITE, .PWDATA, .PADDR,
+      .PREADY, .PRDATA, .PSLVERR,
+      .DebugGPREnable, .DebugFPREnable, .DebugCSREnable,
+      .DebugRegAddr, .DebugRegWrite, .DebugRegWDATA,
+      .DebugR1D, .DebugFRD1D, .CSRReadValM,
+      .IllegalDebugCSRAccess);
   end else begin
-    assign DebugRegRDATA = '0;
+    assign {PREADY, PRDATA, PSLVERR,
+      DebugGPREnable, DebugFPREnable, DebugCSREnable,
+      DebugRegAddr, DebugRegWrite, DebugRegWDATA} = '0;
   end
 
 endmodule

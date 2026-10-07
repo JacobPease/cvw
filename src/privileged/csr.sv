@@ -118,7 +118,8 @@ module csr import cvw::*;  #(parameter cvw_t P) (
   output logic                     DebugStepIE,
   output logic                     DebugStep,
   output logic [1:0]               DebugPrivilegeMode,
-  output logic                     DebugSetPrivMode
+  output logic                     DebugSetPrivMode,
+  output logic                     IllegalDebugCSRAccess
 );
 
   localparam MIP = 12'h344;
@@ -141,6 +142,7 @@ module csr import cvw::*;  #(parameter cvw_t P) (
   logic [5:0]              NextCauseM;
   logic [11:0]             CSRAdrM;
   logic                    IllegalCSRCAccessM, IllegalCSRMAccessM, IllegalCSRSAccessM, IllegalCSRUAccessM, IllegalCSRDAccessM, IllegalCSRTrigAccessM;
+  logic                    IllegalCSRAnyAccessM;
   logic                    InsufficientCSRPrivilegeM;
   logic                    IllegalCSRMWriteReadonlyM;
   logic [P.XLEN-1:0]       CSRReadVal2M;
@@ -387,7 +389,13 @@ module csr import cvw::*;  #(parameter cvw_t P) (
   assign InsufficientCSRPrivilegeM = ~DebugMode & ((CSRAdrM[9:8] == 2'b11 & PrivilegeModeW != P.M_MODE) |
                                      (CSRAdrM[9:8] == 2'b01 & PrivilegeModeW == P.U_MODE));
 
-  assign IllegalCSRAccessM = ((IllegalCSRCAccessM & IllegalCSRMAccessM &
+  // Illegal CSR access types
+  assign IllegalCSRAnyAccessM = (IllegalCSRCAccessM & IllegalCSRMAccessM &
     IllegalCSRSAccessM & IllegalCSRUAccessM & IllegalCSRDAccessM & IllegalCSRTrigAccessM |
-    InsufficientCSRPrivilegeM) & CSRReadM) | IllegalCSRMWriteReadonlyM;
+    InsufficientCSRPrivilegeM);
+
+  assign IllegalCSRAccessM = (IllegalCSRAnyAccessM & CSRReadM) | IllegalCSRMWriteReadonlyM;
+
+  // Check for non-existent CSRs during Abstract Register Reads.
+  assign IllegalDebugCSRAccess = IllegalCSRAnyAccessM & DebugCSREnable;
 endmodule

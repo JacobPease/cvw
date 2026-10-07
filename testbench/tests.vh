@@ -4216,10 +4216,10 @@ string wally64debug_jtag[] = '{
 
 // string wally64debug[] = '{
 //   `DEBUGELFS,
-//   "WALLY-debug-pipeline-state"
+//   "WALLY-debug-fpu"
 // };
 
 // string wally64debug_jtag[] = '{
 //   `DEBUGTV,
-//   "WALLY-debug-pipeline-state"
+//   "WALLY-debug-fpu"
 // };

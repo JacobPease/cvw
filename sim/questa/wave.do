@@ -733,14 +733,26 @@ add wave -noupdate -group Debug -expand -group csrd -group {DPC Sources} /testbe
 add wave -noupdate -group Debug -expand -group abstract /testbench/dut/debug/debug/StartCommand
 add wave -noupdate -group Debug -expand -group abstract /testbench/dut/debug/debug/ValidCommand
 add wave -noupdate -group Debug -expand -group abstract /testbench/dut/debug/debug/ValidSize
-add wave -noupdate -group Debug -expand -group abstract /testbench/dut/debug/debug/AARSize
-add wave -noupdate -group Debug -expand -group abstract /testbench/dut/debug/debug/DebugGPREnable
-add wave -noupdate -group Debug -expand -group abstract /testbench/dut/debug/debug/DebugCSREnable
-add wave -noupdate -group Debug -expand -group abstract /testbench/dut/debug/debug/DebugFPREnable
-add wave -noupdate -group Debug -expand -group abstract /testbench/dut/debug/debug/DebugRegRDATA
-add wave -noupdate -group Debug -expand -group abstract /testbench/dut/debug/debug/DebugRegWDATA
-add wave -noupdate -group Debug -expand -group abstract /testbench/dut/debug/debug/DebugRegAddr
-add wave -noupdate -group Debug -expand -group abstract /testbench/dut/debug/debug/DebugRegWrite
+add wave -noupdate -group Debug -expand -group abstract /testbench/dut/core/debug_apb/debug_apb/DebugGPREnable
+add wave -noupdate -group Debug -expand -group abstract /testbench/dut/core/debug_apb/debug_apb/DebugCSREnable
+add wave -noupdate -group Debug -expand -group abstract /testbench/dut/core/debug_apb/debug_apb/DebugFPREnable
+add wave -noupdate -group Debug -expand -group abstract /testbench/dut/core/debug_apb/debug_apb/DebugRegWDATA
+add wave -noupdate -group Debug -expand -group abstract /testbench/dut/core/debug_apb/debug_apb/DebugRegAddr
+add wave -noupdate -group Debug -expand -group abstract /testbench/dut/core/debug_apb/debug_apb/DebugRegWrite
+add wave -noupdate -group Debug -expand -group abstract /testbench/dut/debug/debug/PCLK
+add wave -noupdate -group Debug -expand -group abstract /testbench/dut/debug/debug/PRESETn
+add wave -noupdate -group Debug -expand -group abstract /testbench/dut/debug/debug/PENABLE
+add wave -noupdate -group Debug -expand -group abstract /testbench/dut/debug/debug/PSELRegister
+add wave -noupdate -group Debug -expand -group abstract /testbench/dut/debug/debug/PSELMemory
+add wave -noupdate -group Debug -expand -group abstract /testbench/dut/debug/debug/PWRITE
+add wave -noupdate -group Debug -expand -group abstract /testbench/dut/debug/debug/PWDATA
+add wave -noupdate -group Debug -expand -group abstract /testbench/dut/debug/debug/PSTRB
+add wave -noupdate -group Debug -expand -group abstract /testbench/dut/debug/debug/PADDR
+add wave -noupdate -group Debug -expand -group abstract /testbench/dut/debug/debug/PREADY
+add wave -noupdate -group Debug -expand -group abstract /testbench/dut/debug/debug/PRDATA
+add wave -noupdate -group Debug -expand -group abstract /testbench/dut/debug/debug/PSLVERR
+add wave -noupdate -group Debug -expand -group abstract /testbench/dut/debug/debug/debug_apb/CurrState
+add wave -noupdate -group Debug -expand -group abstract /testbench/dut/debug/debug/CMDErr
 
 
 
