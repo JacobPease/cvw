@@ -31,10 +31,11 @@
 `define CUSTOM "4"
 `define COVERAGE "5"
 `define BUILDROOT "6"
-`define DEBUGELFS "7"
-`define DEBUGTV "8"
-`define DEBUG32ELFS "9"
-`define DEBUG32TV "10"
+`define PERIPH "7"
+`define DEBUGELFS "8"
+`define DEBUGTV "9"
+`define DEBUG32ELFS "10"
+`define DEBUG32TV "11"
 
 string tvpaths[] = '{
   "../../tests/riscof/work/riscv-arch-test/",
@@ -43,7 +44,8 @@ string tvpaths[] = '{
   "../../addins/embench-iot/",
   "../../tests/custom/work/",
   "../../tests/coverage/",
-  "",
+  "",                          // buildroot: paths come from RISCV_DIR
+  "../../tests/periph/",
   "../../tests/debug/build/",
   "../../tests/debug/build/testvectors/",
   "../../tests/debug/build32/",
@@ -63,8 +65,10 @@ string coverage64gc[] = '{
   "tlbmisc",
   "tlbNAPOT",
   "tlbASID",
+  "misalignedADSpill",
   "tlbGLB",
   "tlbGLBASID",
+  "sfencevmaglobal",
   "tlbGLBHIT",
   "tlbASIDMISS",
   "tlbMP",
@@ -72,6 +76,7 @@ string coverage64gc[] = '{
   "tlbTP",
   "tlbMisaligned",
   "hptwAccessFault",
+  "deferredexc",
   "nonleafpbmtfault",
   "amoAccessFault",
   "floatmisc",
@@ -84,6 +89,7 @@ string coverage64gc[] = '{
   "pmpcfg2",
   "pmppriority",
   "pmpcbo",
+  "cboADPermission",
   "pmpadrdecs",
   "btbthrash",
   "fpuReservedRM",
@@ -4062,15 +4068,17 @@ string wally64priv[] = '{
   "rv64i_m/privilege/src/WALLY-satp-invalid-01.S"
 };
 
+// Self-checking peripheral tests built by tests/periph/Makefile (no RISCOF or reference signature)
 string wally64periph[] = '{
-  `WALLYTEST,
-  "rv64i_m/privilege/src/WALLY-periph-01.S",
-  "rv64i_m/privilege/src/WALLY-clint-01.S",
-  "rv64i_m/privilege/src/WALLY-gpio-01.S",
-  "rv64i_m/privilege/src/WALLY-plic-01.S",
-  "rv64i_m/privilege/src/WALLY-plic-s-01.S",
-  "rv64i_m/privilege/src/WALLY-uart-01.S",
-  "rv64i_m/privilege/src/WALLY-spi-01.S"
+  `PERIPH,
+  "rv64/WALLY-periph-01",
+  "rv64/WALLY-clint-01",
+  "rv64/WALLY-gpio-01",
+  "rv64/WALLY-plic-01",
+  "rv64/WALLY-plic-s-01",
+  "rv64/WALLY-uart-01",
+  "rv64/WALLY-spi-01",
+  "rv64/WALLY-pwm-01"
 };
 
 string wally32priv[] = '{
@@ -4100,20 +4108,26 @@ string wally32priv[] = '{
   "rv32i_m/privilege/src/WALLY-trap-u-01.S",
   "rv32i_m/privilege/src/WALLY-wfi-01.S",
   "rv32i_m/privilege/src/WALLY-endianness-01.S",
-  "rv32i_m/privilege/src/WALLY-satp-invalid-01.S",
-  // These peripherals are here instead of wally32periph because they don't work on rv32imc, which lacks a PMP register to configure
-  "rv32i_m/privilege/src/WALLY-periph-s-01.S",
-  "rv32i_m/privilege/src/WALLY-gpio-01.S",
-  "rv32i_m/privilege/src/WALLY-clint-01.S",
-  "rv32i_m/privilege/src/WALLY-uart-01.S",
-  "rv32i_m/privilege/src/WALLY-plic-01.S",
-  "rv32i_m/privilege/src/WALLY-plic-s-01.S",
-  "rv32i_m/privilege/src/WALLY-spi-01.S"
+  "rv32i_m/privilege/src/WALLY-satp-invalid-01.S"
 };
 
+// Self-checking peripheral tests built by tests/periph/Makefile (no RISCOF or reference signature)
 string wally32periph[] = '{
-  `WALLYTEST,
-  "rv32i_m/privilege/src/WALLY-periph-01.S"
+  `PERIPH,
+  "rv32/WALLY-periph-01",
+  "rv32/WALLY-gpio-01",
+  "rv32/WALLY-clint-01",
+  "rv32/WALLY-uart-01",
+  "rv32/WALLY-plic-01",
+  "rv32/WALLY-plic-s-01",
+  "rv32/WALLY-spi-01",
+  "rv32/WALLY-pwm-01"
+};
+
+// For rv32imc, which lacks supervisor mode and the PMP registers the other tests configure
+string wally32periph_imc[] = '{
+  `PERIPH,
+  "rv32/WALLY-periph-m-01"
 };
 
 string fpga[] = '{

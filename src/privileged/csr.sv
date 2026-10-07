@@ -11,7 +11,7 @@
 // Documentation: RISC-V System on Chip Design
 //
 // A component of the CORE-V-WALLY configurable RISC-V project.
-// https://github.com/openhwgroup/cvw
+// https://github.com/openhwfoundation/cvw
 //
 // Copyright (C) 2021-23 Harvey Mudd College & Oklahoma State University
 //
@@ -138,7 +138,7 @@ module csr import cvw::*;  #(parameter cvw_t P) (
   logic                    CSRMWriteM, CSRSWriteM, CSRUWriteM, CSRDWriteM, CSRTrigWriteM;
   logic                    UngatedCSRMWriteM;
   logic                    WriteFRMM, SetOrWriteFFLAGSM;
-  logic [P.XLEN-1:0]       UnalignedNextEPCM, NextEPCM, NextMtvalM;
+  logic [P.XLEN-1:0]       UnalignedNextEPCM, NextEPCM, NextXtvalM;
   logic [5:0]              NextCauseM;
   logic [11:0]             CSRAdrM;
   logic                    IllegalCSRCAccessM, IllegalCSRMAccessM, IllegalCSRSAccessM, IllegalCSRUAccessM, IllegalCSRDAccessM, IllegalCSRTrigAccessM;
@@ -147,7 +147,7 @@ module csr import cvw::*;  #(parameter cvw_t P) (
   logic                    IllegalCSRMWriteReadonlyM;
   logic [P.XLEN-1:0]       CSRReadVal2M;
   logic [11:0]             MIP_REGW_writeable;
-  logic [P.XLEN-1:0]       TVecM,NextFaultMtvalM;
+  logic [P.XLEN-1:0]       TVecM,NextFaultXtvalM;
   logic                    MTrapM, STrapM;
   logic                    SelMtvecM;
   logic [P.XLEN-1:0]       TVecAlignedM;
@@ -166,16 +166,17 @@ module csr import cvw::*;  #(parameter cvw_t P) (
   assign InstrValidNotFlushedM = InstrValidM & ~StallW & ~FlushW;
 
   ///////////////////////////////////////////
-  // MTVAL: gets value from PC, Instruction, or load/store address
+  // XTVAL: gets value from PC, Instruction, or load/store address (for MTVAL/STVAL)
   ///////////////////////////////////////////
 
   always_comb
-    if (InterruptM)           NextFaultMtvalM = '0;
+    if (InterruptM)           NextFaultXtvalM = '0;
     else case (CauseM)
-      12, 1, 3:               NextFaultMtvalM = PCSpillM;  // Instruction page/access faults, breakpoint
-      2:                      NextFaultMtvalM = {{(P.XLEN-32){1'b0}}, InstrOrigM}; // Illegal instruction fault
-      0, 4, 6, 13, 15, 5, 7:  NextFaultMtvalM = IEUAdrxTvalM; // Instruction misaligned, Load/Store Misaligned/page/access faults
-      default:                NextFaultMtvalM = '0; // Ecall, interrupts
+      12, 1:                  NextFaultXtvalM = PCSpillM;  // Instruction page/access faults report the faulting half of a spilled fetch
+      3:                      NextFaultXtvalM = PCM;       // Breakpoint reports the address of the ebreak itself, not the second half of a spilled fetch
+      2:                      NextFaultXtvalM = {{(P.XLEN-32){1'b0}}, InstrOrigM}; // Illegal instruction fault
+      0, 4, 6, 13, 15, 5, 7:  NextFaultXtvalM = IEUAdrxTvalM; // Instruction misaligned, Load/Store Misaligned/page/access faults
+      default:                NextFaultXtvalM = '0; // Ecall, interrupts
     endcase
 
   ///////////////////////////////////////////
@@ -235,7 +236,7 @@ module csr import cvw::*;  #(parameter cvw_t P) (
   assign UnalignedNextEPCM = TrapM ? PCM : CSRWriteValM;
   assign NextEPCM = P.ZCA_SUPPORTED ? {UnalignedNextEPCM[P.XLEN-1:1], 1'b0} : {UnalignedNextEPCM[P.XLEN-1:2], 2'b00}; // 3.1.15 alignment
   assign NextCauseM = TrapM ? {InterruptM, CauseM}: {CSRWriteValM[P.XLEN-1], CSRWriteValM[4:0]};
-  assign NextMtvalM = TrapM ? NextFaultMtvalM : CSRWriteValM;
+  assign NextXtvalM = TrapM ? NextFaultXtvalM : CSRWriteValM;
   assign UngatedCSRMWriteM = CSRWriteM & (PrivilegeModeW == P.M_MODE);
   assign CSRMWriteM = DebugMode ? DebugRegWrite & DebugCSREnable : UngatedCSRMWriteM & InstrValidNotFlushedM;
   assign CSRSWriteM = DebugMode ? DebugRegWrite & DebugCSREnable : CSRWriteM & (|PrivilegeModeW) & InstrValidNotFlushedM;
@@ -265,7 +266,7 @@ module csr import cvw::*;  #(parameter cvw_t P) (
 
   csrm #(P) csrm(.clk, .reset,
     .UngatedCSRMWriteM, .CSRMWriteM, .MTrapM, .CSRAdrM,
-    .NextEPCM, .NextCauseM, .NextMtvalM, .MSTATUS_REGW, .MSTATUSH_REGW,
+    .NextEPCM, .NextCauseM, .NextXtvalM, .MSTATUS_REGW, .MSTATUSH_REGW,
     .CSRWriteValM, .CSRMReadValM, .MTVEC_REGW,
     .MEPC_REGW, .MCOUNTEREN_REGW, .MCOUNTINHIBIT_REGW,
     .MEDELEG_REGW, .MIDELEG_REGW,.PMPCFG_ARRAY_REGW, .PMPADDR_ARRAY_REGW,
@@ -279,7 +280,7 @@ module csr import cvw::*;  #(parameter cvw_t P) (
     assign STCE = P.SSTC_SUPPORTED & (PrivilegeModeW == P.M_MODE | (MCOUNTEREN_REGW[1] & ENVCFG_STCE));
     csrs #(P) csrs(.clk, .reset,
       .CSRSWriteM, .STrapM, .CSRAdrM,
-      .NextEPCM, .NextCauseM, .NextMtvalM, .SSTATUS_REGW,
+      .NextEPCM, .NextCauseM, .NextXtvalM, .SSTATUS_REGW,
       .STATUS_TVM,
       .CSRWriteValM, .PrivilegeModeW,
       .CSRSReadValM, .STVEC_REGW, .SEPC_REGW,
@@ -312,19 +313,15 @@ module csr import cvw::*;  #(parameter cvw_t P) (
     assign SetOrWriteFFLAGSM = 1'b0;
   end
 
-  if (P.ZICNTR_SUPPORTED) begin : counters
-    csrc #(P) counters(.clk, .reset, .StallE, .StallM, .FlushM,
-      .InstrValidNotFlushedM, .LoadStallD, .StoreStallD, .CSRWriteM, .CSRMWriteM,
-      .BPDirWrongM, .BTAWrongM, .RASPredPCWrongM, .IClassWrongM, .BPWrongM,
-      .IClassM, .DCacheMiss, .DCacheAccess, .ICacheMiss, .ICacheAccess, .sfencevmaM,
-      .InterruptM, .ExceptionM, .InvalidateICacheM, .ICacheStallF, .DCacheStallM, .DivBusyE, .FDivBusyE,
-      .CSRAdrM, .PrivilegeModeW, .CSRWriteValM,
-      .MCOUNTINHIBIT_REGW, .MCOUNTEREN_REGW, .SCOUNTEREN_REGW,
-      .MTIME_CLINT,  .CSRCReadValM, .IllegalCSRCAccessM, .DebugStopCounters);
-  end else begin
-    assign CSRCReadValM = '0;
-    assign IllegalCSRCAccessM = 1'b1; // counters aren't enabled
-  end
+  // counters are always instantiated but may read as zero if not supported
+  csrc #(P) counters(.clk, .reset, .StallE, .StallM, .FlushM,
+    .InstrValidNotFlushedM, .LoadStallD, .StoreStallD, .CSRWriteM, .CSRMWriteM,
+    .BPDirWrongM, .BTAWrongM, .RASPredPCWrongM, .IClassWrongM, .BPWrongM,
+    .IClassM, .DCacheMiss, .DCacheAccess, .ICacheMiss, .ICacheAccess, .sfencevmaM,
+    .InterruptM, .ExceptionM, .InvalidateICacheM, .ICacheStallF, .DCacheStallM, .DivBusyE, .FDivBusyE,
+    .CSRAdrM, .PrivilegeModeW, .CSRWriteValM,
+    .MCOUNTINHIBIT_REGW, .MCOUNTEREN_REGW, .SCOUNTEREN_REGW,
+    .MTIME_CLINT,  .CSRCReadValM, .IllegalCSRCAccessM, .DebugStopCounters);
 
   if (P.DEBUG_SUPPORTED) begin : debug
     csrd #(P) csrd(.clk, .reset, .DebugHaltReq, .DebugResumeReq,
