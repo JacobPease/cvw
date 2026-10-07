@@ -54,18 +54,22 @@ typedef struct packed {
   logic         ZFA_SUPPORTED;
   logic         SSTC_SUPPORTED;
   logic         VIRTMEM_SUPPORTED;
+  logic         SVPBMT_SUPPORTED;
+  logic         SVNAPOT_SUPPORTED;
+  logic         SVINVAL_SUPPORTED;
+  logic         SVADU_SUPPORTED;
+  logic         SV32_SUPPORTED;
+  logic         SV39_SUPPORTED;
+  logic         SV48_SUPPORTED;
+  logic         SV57_SUPPORTED;
   logic         VECTORED_INTERRUPTS_SUPPORTED;
   logic         BIGENDIAN_SUPPORTED;
-  logic         SVADU_SUPPORTED;
   logic         ZMMUL_SUPPORTED;
   logic         ZICBOM_SUPPORTED;
   logic         ZICBOZ_SUPPORTED;
   logic         ZICBOP_SUPPORTED;
   logic         ZICCLSM_SUPPORTED;
   logic         ZICOND_SUPPORTED;
-  logic         SVPBMT_SUPPORTED;
-  logic         SVNAPOT_SUPPORTED;
-  logic         SVINVAL_SUPPORTED;
   logic         ZAAMO_SUPPORTED;
   logic         ZALRSC_SUPPORTED;
 
@@ -141,6 +145,10 @@ typedef struct packed {
   logic         SPI_SUPPORTED;
   logic [63:0]  SPI_BASE;
   logic [63:0]  SPI_RANGE;
+  logic         PWM_SUPPORTED;
+  logic [63:0]  PWM_BASE;
+  logic [63:0]  PWM_RANGE;
+
 
 // Test modes
 
@@ -149,7 +157,8 @@ typedef struct packed {
   logic         SPI_LOOPBACK_TEST;
 
 // Hardware configuration
-  int           UART_PRESCALE ;
+  int           UART_PRESCALE;
+  int           PWM_WIDTH;
 
 // Interrupt configuration
   int           PLIC_NUM_SRC;
@@ -158,6 +167,7 @@ typedef struct packed {
   int           PLIC_UART_ID;
   int           PLIC_SPI_ID;
   int           PLIC_SDC_ID;
+  int           PLIC_PWM_ID;
 
   logic                BPRED_SUPPORTED;
   logic [31:0]         BPRED_TYPE;
@@ -216,6 +226,7 @@ typedef struct packed {
   logic [3:0] SV32;
   logic [3:0] SV39;
   logic [3:0] SV48;
+  logic [3:0] SV57;
 
 // macros to define supported modes
   logic A_SUPPORTED;

@@ -10,7 +10,7 @@
 // Documentation: RISC-V System on Chip Design
 //
 // A component of the CORE-V-WALLY configurable RISC-V project.
-// https://github.com/openhwgroup/cvw
+// https://github.com/openhwfoundation/cvw
 //
 // Copyright (C) 2021-23 Harvey Mudd College & Oklahoma State University
 //
@@ -37,10 +37,12 @@ module privdec import cvw::*;  #(parameter cvw_t P) (
   input  logic         IllegalCSRAccessM,                   // Not a legal CSR access
   input  logic [1:0]   PrivilegeModeW,                      // current privilege level
   input  logic         STATUS_TSR, STATUS_TVM, STATUS_TW,   // status bits
+  input  logic         TrapM,                               // Trap is occurring
   output logic         IllegalInstrFaultM,                  // Illegal instruction
   output logic         EcallFaultM, BreakpointFaultM,       // Ecall or breakpoint; must retire, so don't flush it when the trap occurs
   output logic         sretM, mretM, RetM,                  // return instructions
-  output logic         wfiM, wfiW, sfencevmaM               // wfi / sfence.vma / sinval.vma instructions
+  output logic         wfiM, wfiW, sfencevmaM,              // wfi / sfence.vma / sinval.vma instructions
+  output logic         sfencevmaAllM                        // sfence.vma with rs2=x0: flush all TLB entries including global
 );
 
   logic                rs1zeroM, rdzeroM;                   // rs1 / rd field = 0
@@ -81,15 +83,23 @@ module privdec import cvw::*;  #(parameter cvw_t P) (
   assign sfencevmaM = PrivilegedM & P.VIRTMEM_SUPPORTED &
                       ((PrivilegeModeW == P.M_MODE & (vmaM | fenceinvalM)) |
                        (PrivilegeModeW == P.S_MODE & (vmaM & ~STATUS_TVM  | fenceinvalM))); // sfence.w.inval & sfence.inval.ir not affected by TVM
+  // rs2 (InstrM[24:20]) = x0 means flush all ASIDs including global mappings; rs2 != x0 is ASID-specific
+  // and must preserve global (G=1) entries (RISC-V Privileged spec sfence.vma semantics).
+  assign sfencevmaAllM = sfencevmaM & ~|InstrM[24:20];
 
   ///////////////////////////////////////////
   // WFI timeout Privileged Spec 3.1.6.5
   ///////////////////////////////////////////
 
-  if (P.U_SUPPORTED) begin:wfi
+  if (P.U_SUPPORTED) begin : wfi
     logic [P.WFI_TIMEOUT_BIT:0] WFICount, WFICountPlus1;
-    assign WFICountPlus1 = wfiM ? WFICount + 1 : '0; // restart counting on WFI
-    flopr #(P.WFI_TIMEOUT_BIT+1) wficountreg(clk, reset, WFICountPlus1, WFICount);  // count while in WFI
+    logic                       WFICountEn, WFICountRst;
+    // Clear counter when reset or when trap is taken
+    assign WFICountRst = reset | TrapM;
+    // Stop incrementing the counter once reach the timeout limit
+    assign WFICountEn = ~WFITimeoutM;
+    assign WFICountPlus1 = wfiM ? WFICount + 1 : '0; // Count while WFI
+    flopenr #(P.WFI_TIMEOUT_BIT+1) wficountreg(clk, WFICountRst, WFICountEn, WFICountPlus1, WFICount);
   // coverage off -item e 1 -fecexprrow 1
   // WFI Timeout trap will not occur when STATUS_TW is low while in supervisor mode, so the system gets stuck waiting for an interrupt and triggers a watchdog timeout.
     assign WFITimeoutM = ((STATUS_TW & PrivilegeModeW != P.M_MODE) | (P.S_SUPPORTED & PrivilegeModeW == P.U_MODE)) & WFICount[P.WFI_TIMEOUT_BIT];

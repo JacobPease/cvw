@@ -2,11 +2,12 @@
 //
 // Written: me@KatherineParry.com
 // Modified: 7/5/2022
+// Modified: 2/11/2026 james.stine@okstate.edu/marcus@infinitymdm.dev
 //
 // Purpose: Leading Zero Counter
 //
 // A component of the CORE-V-WALLY configurable RISC-V project.
-// https://github.com/openhwgroup/cvw
+// https://github.com/openhwfoundation/cvw
 //
 // Copyright (C) 2021-23 Harvey Mudd College & Oklahoma State University
 //
@@ -33,7 +34,10 @@ module lzc #(parameter WIDTH = 1) (
 
   always_comb begin
     i = 0;
-    while ((i < WIDTH) & ~num[WIDTH-1-i]) i = i+1;  // search for leading one
+    // search for leading one
+    while ((i < WIDTH) && (!num[WIDTH-1-i])) begin
+      i = i + 1;
+    end
     ZeroCnt = i[$clog2(WIDTH+1)-1:0];
   end
 endmodule

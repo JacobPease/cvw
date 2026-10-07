@@ -31,6 +31,7 @@
 `define CUSTOM "4"
 `define COVERAGE "5"
 `define BUILDROOT "6"
+`define PERIPH "7"
 
 string tvpaths[] = '{
   "../../tests/riscof/work/riscv-arch-test/",
@@ -38,7 +39,9 @@ string tvpaths[] = '{
   "../../benchmarks/coremark/work/",
   "../../addins/embench-iot/",
   "../../tests/custom/work/",
-  "../../tests/coverage/"
+  "../../tests/coverage/",
+  "",                          // buildroot: paths come from RISCV_DIR
+  "../../tests/periph/"
 };
 
 string coverage64gc[] = '{
@@ -54,12 +57,18 @@ string coverage64gc[] = '{
   "tlbmisc",
   "tlbNAPOT",
   "tlbASID",
+  "misalignedADSpill",
   "tlbGLB",
+  "tlbGLBASID",
+  "sfencevmaglobal",
+  "tlbGLBHIT",
+  "tlbASIDMISS",
   "tlbMP",
   "tlbGP",
   "tlbTP",
   "tlbMisaligned",
   "hptwAccessFault",
+  "deferredexc",
   "nonleafpbmtfault",
   "amoAccessFault",
   "floatmisc",
@@ -72,8 +81,14 @@ string coverage64gc[] = '{
   "pmpcfg2",
   "pmppriority",
   "pmpcbo",
+  "cboADPermission",
   "pmpadrdecs",
-  "btbthrash"
+  "btbthrash",
+  "fpuReservedRM",
+  "decompReserved",
+  "pmpTOR7",
+  "cacheInval",
+  "wfitimeout"
 };
 
 string buildroot[] = '{
@@ -377,7 +392,7 @@ string arch64vm_sv39[] = '{
   "rv64i_m/vm_sv39/src/vm_mprv_U_set_sum_set_S_mode.S",
   "rv64i_m/vm_sv39/src/vm_mprv_U_set_sum_unset_S_mode.S",
   "rv64i_m/vm_sv39/src/vm_mprv_bare_mode.S",
-  //"rv64i_m/vm_sv39/src/vm_mstatus_sbe_set_S_mode.S",
+  //"rv64i_m/vm_sv39/src/vm_mstatus_sbe_set_S_mode.S",   // uncomment these lines when Sail supports Supervisor Big Endian
   //"rv64i_m/vm_sv39/src/vm_mstatus_sbe_set_sum_set_S_mode.S",
   "rv64i_m/vm_sv39/src/vm_mstatus_tvm_test.S",
   "rv64i_m/vm_sv39/src/vm_mxr_S_mode.S",
@@ -389,7 +404,7 @@ string arch64vm_sv39[] = '{
   "rv64i_m/vm_sv39/src/vm_reserved_rsw_pte_U_mode.S",
   "rv64i_m/vm_sv39/src/vm_reserved_rwx_pte_S_mode.S",
   "rv64i_m/vm_sv39/src/vm_reserved_rwx_pte_U_mode.S",
-  //"rv64i_m/vm_sv39/src/vm_reserved_svnapot_S_mode.S",  // Run this if SVNAPOT_SUPPORTED == 0
+  //"rv64i_m/vm_sv39/src/vm_reserved_svnapot_S_mode.S",  // run this if SVNAPOT_SUPPORTED == 0
   "rv64i_m/vm_sv39/src/vm_reserved_svpbmt_S_mode.S",
   "rv64i_m/vm_sv39/src/vm_satp_access_tests.S",
   "rv64i_m/vm_sv39/src/vm_spage_access_U_mode.S",
@@ -421,7 +436,7 @@ string arch64vm_sv48[] = '{
   "rv64i_m/vm_sv48/src/sv48_mprv_U_set_sum_set_S_mode.S",
   "rv64i_m/vm_sv48/src/sv48_mprv_U_set_sum_unset_S_mode.S",
   "rv64i_m/vm_sv48/src/sv48_mprv_bare_mode.S",
-  //"rv64i_m/vm_sv48/src/sv48_mstatus_sbe_set_S_mode.S",
+  //"rv64i_m/vm_sv48/src/sv48_mstatus_sbe_set_S_mode.S",   //Uncomment these lines when Sail supports Supervisor Big Endian
   //"rv64i_m/vm_sv48/src/sv48_mstatus_sbe_set_sum_set_S_mode.S",
   "rv64i_m/vm_sv48/src/sv48_mstatus_tvm_test.S",
   "rv64i_m/vm_sv48/src/sv48_mxr_S_mode.S",
@@ -433,7 +448,7 @@ string arch64vm_sv48[] = '{
   "rv64i_m/vm_sv48/src/sv48_reserved_rsw_pte_U_mode.S",
   "rv64i_m/vm_sv48/src/sv48_reserved_rwx_pte_S_mode.S",
   "rv64i_m/vm_sv48/src/sv48_reserved_rwx_pte_U_mode.S",
-  //"rv64i_m/vm_sv48/src/sv48_reserved_svnapot_S_mode.S",  // Run this if SVNAPOT_SUPPORTED == 0
+  // "rv64i_m/vm_sv48/src/sv48_reserved_svnapot_S_mode.S", // run this if SVNAPOT_SUPPORTED == 0
   "rv64i_m/vm_sv48/src/sv48_reserved_svpbmt_S_mode.S",
   "rv64i_m/vm_sv48/src/sv48_satp_access_tests.S",
   "rv64i_m/vm_sv48/src/sv48_spage_access_U_mode.S",
@@ -444,6 +459,66 @@ string arch64vm_sv48[] = '{
   "rv64i_m/vm_pmp/src/sv48/sv48_pmp_on_pa_U_mode.S",
   "rv64i_m/vm_pmp/src/sv48/sv48_pmp_on_pte_S_mode.S",
   "rv64i_m/vm_pmp/src/sv48/sv48_pmp_on_pte_U_mode.S"
+};
+
+string arch64vm_sv48_a[] = '{
+  `RISCVARCHTEST,
+  "rv64i_m/vm_sv48/src/sv48_res_global_pte_U_mode.S",
+  "rv64i_m/vm_sv48/src/sv48_pte_reserved_field_S_mode.S"
+};
+
+string arch64vm_sv48_b[] = '{
+  `RISCVARCHTEST,
+  "rv64i_m/vm_sv48/src/sv48_pte_reserved_field_S_mode.S",
+  "rv64i_m/vm_sv48/src/sv48_res_global_pte_U_mode.S"
+};
+
+string arch64vm_sv39_isolate[] = '{
+  `RISCVARCHTEST,
+  "rv64i_m/vm_sv39/src/vm_VA_all_zeros_S_mode.S"
+};
+
+string arch64vm_sv48_mxr_isolate[] = '{
+  `RISCVARCHTEST,
+  "rv64i_m/vm_sv48/src/sv48_mxr_S_mode.S"
+};
+
+string arch64vm_sv57[] = '{
+  `RISCVARCHTEST,
+  //"rv64i_m/vm_sv57/src/sv57_A_and_D_S_mode.S",        // Disable until fixed; Might be due to Issue#1538 ***TODO: Zain
+  //"rv64i_m/vm_sv57/src/sv57_A_and_D_U_mode.S",        // Disable until fixed; Might be due to Issue#1538 ***TODO: Zain
+  "rv64i_m/vm_sv57/src/sv57_VA_all_ones_S_mode.S",
+  "rv64i_m/vm_sv57/src/sv57_VA_all_zeros_S_mode.S",
+  "rv64i_m/vm_sv57/src/sv57_canonical_S_mode.S",
+  "rv64i_m/vm_sv57/src/sv57_canonical_U_mode.S",
+  "rv64i_m/vm_sv57/src/sv57_global_pte_S_mode.S",
+  "rv64i_m/vm_sv57/src/sv57_global_pte_U_mode.S",
+  "rv64i_m/vm_sv57/src/sv57_invalid_pte_S_mode.S",
+  "rv64i_m/vm_sv57/src/sv57_invalid_pte_U_mode.S",
+  "rv64i_m/vm_sv57/src/sv57_misaligned_S_mode.S",
+  "rv64i_m/vm_sv57/src/sv57_misaligned_U_mode.S",
+  "rv64i_m/vm_sv57/src/sv57_mprv_S_mode.S",
+  "rv64i_m/vm_sv57/src/sv57_mprv_U_mode.S",
+  "rv64i_m/vm_sv57/src/sv57_mprv_U_set_sum_set_S_mode.S",
+  "rv64i_m/vm_sv57/src/sv57_mprv_U_set_sum_unset_S_mode.S",
+  //"rv64i_m/vm_sv57/src/sv57_mstatus_sbe_set_S_mode.S",  // uncomment these lines when Sail supports Supervisor Big Endian
+  //"rv64i_m/vm_sv57/src/sv57_mstatus_sbe_set_sum_set_S_mode.S",
+  "rv64i_m/vm_sv57/src/sv57_mxr_S_mode.S",
+  "rv64i_m/vm_sv57/src/sv57_mxr_U_mode.S",
+  "rv64i_m/vm_sv57/src/sv57_nleaf_pte_level0_S_mode.S",
+  "rv64i_m/vm_sv57/src/sv57_nleaf_pte_level0_U_mode.S",
+  "rv64i_m/vm_sv57/src/sv57_pte_reserved_field_S_mode.S",
+  "rv64i_m/vm_sv57/src/sv57_reserved_rsw_pte_S_mode.S",
+  "rv64i_m/vm_sv57/src/sv57_reserved_rsw_pte_U_mode.S",
+  "rv64i_m/vm_sv57/src/sv57_reserved_rwx_pte_S_mode.S",
+  "rv64i_m/vm_sv57/src/sv57_reserved_rwx_pte_U_mode.S",
+  //"rv64i_m/vm_sv57/src/sv57_reserved_svnapot_S_mode.S", // run this if SVNAPOT_SUPPORTED == 0
+  "rv64i_m/vm_sv57/src/sv57_reserved_svpbmt_S_mode.S",
+  "rv64i_m/vm_sv57/src/sv57_satp_access_tests.S",
+  "rv64i_m/vm_sv57/src/sv57_spage_access_U_mode.S",
+  "rv64i_m/vm_sv57/src/sv57_sum_set_S_mode.S",
+  "rv64i_m/vm_sv57/src/sv57_sum_set_U_bit_unset_S_mode.S",
+  "rv64i_m/vm_sv57/src/sv57_sum_unset_S_mode.S"
 };
 
 string arch64priv[] = '{
@@ -3985,15 +4060,17 @@ string wally64priv[] = '{
   "rv64i_m/privilege/src/WALLY-satp-invalid-01.S"
 };
 
+// Self-checking peripheral tests built by tests/periph/Makefile (no RISCOF or reference signature)
 string wally64periph[] = '{
-  `WALLYTEST,
-  "rv64i_m/privilege/src/WALLY-periph-01.S",
-  "rv64i_m/privilege/src/WALLY-clint-01.S",
-  "rv64i_m/privilege/src/WALLY-gpio-01.S",
-  "rv64i_m/privilege/src/WALLY-plic-01.S",
-  "rv64i_m/privilege/src/WALLY-plic-s-01.S",
-  "rv64i_m/privilege/src/WALLY-uart-01.S",
-  "rv64i_m/privilege/src/WALLY-spi-01.S"
+  `PERIPH,
+  "rv64/WALLY-periph-01",
+  "rv64/WALLY-clint-01",
+  "rv64/WALLY-gpio-01",
+  "rv64/WALLY-plic-01",
+  "rv64/WALLY-plic-s-01",
+  "rv64/WALLY-uart-01",
+  "rv64/WALLY-spi-01",
+  "rv64/WALLY-pwm-01"
 };
 
 string wally32priv[] = '{
@@ -4023,20 +4100,26 @@ string wally32priv[] = '{
   "rv32i_m/privilege/src/WALLY-trap-u-01.S",
   "rv32i_m/privilege/src/WALLY-wfi-01.S",
   "rv32i_m/privilege/src/WALLY-endianness-01.S",
-  "rv32i_m/privilege/src/WALLY-satp-invalid-01.S",
-  // These peripherals are here instead of wally32periph because they don't work on rv32imc, which lacks a PMP register to configure
-  "rv32i_m/privilege/src/WALLY-periph-s-01.S",
-  "rv32i_m/privilege/src/WALLY-gpio-01.S",
-  "rv32i_m/privilege/src/WALLY-clint-01.S",
-  "rv32i_m/privilege/src/WALLY-uart-01.S",
-  "rv32i_m/privilege/src/WALLY-plic-01.S",
-  "rv32i_m/privilege/src/WALLY-plic-s-01.S",
-  "rv32i_m/privilege/src/WALLY-spi-01.S"
+  "rv32i_m/privilege/src/WALLY-satp-invalid-01.S"
 };
 
+// Self-checking peripheral tests built by tests/periph/Makefile (no RISCOF or reference signature)
 string wally32periph[] = '{
-  `WALLYTEST,
-  "rv32i_m/privilege/src/WALLY-periph-01.S"
+  `PERIPH,
+  "rv32/WALLY-periph-01",
+  "rv32/WALLY-gpio-01",
+  "rv32/WALLY-clint-01",
+  "rv32/WALLY-uart-01",
+  "rv32/WALLY-plic-01",
+  "rv32/WALLY-plic-s-01",
+  "rv32/WALLY-spi-01",
+  "rv32/WALLY-pwm-01"
+};
+
+// For rv32imc, which lacks supervisor mode and the PMP registers the other tests configure
+string wally32periph_imc[] = '{
+  `PERIPH,
+  "rv32/WALLY-periph-m-01"
 };
 
 string fpga[] = '{
