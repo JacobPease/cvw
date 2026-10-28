@@ -149,8 +149,8 @@ module dtm import cvw::*; #(parameter cvw_t P) (
       DTMHardReset <= 0;
       DMIReset <= 0;
     end else if (UpdateDTMCS) begin
-      DMIReset <= dtmcs[17];
-      DTMHardReset <= dtmcs[16];
+      DTMHardReset <= dtmcs[17];
+      DMIReset <= dtmcs[16];
     end else if (DMIReset) begin
       DMIReset <= 0;
     end
