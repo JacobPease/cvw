@@ -36,8 +36,10 @@ module csrd import cvw::*;  #(parameter cvw_t P) (
   input  logic [11:0]       CSRAdrM,
   input  logic [P.XLEN-1:0] CSRWriteValM,
   input  logic              PCSrcM, FlushM, StallM,
+  input  logic              TrapM,
   input  logic [P.XLEN-1:0] NextValidPCE,
   input  logic [P.XLEN-1:0] IEUAdrM, PCM,
+  input  logic [P.XLEN-1:0] TrapVectorM,
   input  logic [1:0]        PrivilegeModeW,
   input  logic              DebugMode,
   input  logic              DebugHaltReq, DebugResumeReq,
@@ -141,7 +143,7 @@ module csrd import cvw::*;  #(parameter cvw_t P) (
 
   // Write enables for each register.
   assign WriteDCSR = CSRDWriteM & (CSRAdrM == DCSR) | NextHalt;
-  assign WriteDPC  = CSRDWriteM & (CSRAdrM == DPC) | NextHalt;
+  assign WriteDPC  = CSRDWriteM & (CSRAdrM == DPC) | NextHalt | NextHalt & TrapM;
 
   assign DCSRWriteValM = CSRDWriteM & ~NextHalt ?
                          {CSRWriteValM[15], CSRWriteValM[13], CSRWriteValM[12], CSRWriteValM[11], CSRWriteValM[10],
@@ -155,15 +157,19 @@ module csrd import cvw::*;  #(parameter cvw_t P) (
     end else if (DebugEBreak) begin
       DPCWriteValM = PCM;
     end else if (step & NextHalt | DebugHaltReq & NextHalt) begin
-      if (PCSrcM) begin
-        // If this is a branch, jump, or jalr, DPC will point to the
-        // actual next valid instruction.
-        DPCWriteValM = IEUAdrM;
+      if (TrapM) begin
+        DPCWriteValM = TrapVectorM;
       end else begin
-        // The fallthrough address PC + 4/2 is not in the memory
-        // stage. So the CPU has to figure out what the next valid PC
-        // is.
-        DPCWriteValM = NextValidPCE;
+        if (PCSrcM) begin
+          // If this is a branch, jump, or jalr, DPC will point to the
+          // actual next valid instruction.
+          DPCWriteValM = IEUAdrM;
+        end else begin
+          // The fallthrough address PC + 4/2 is not in the memory
+          // stage. So the CPU has to figure out what the next valid PC
+          // is.
+          DPCWriteValM = NextValidPCE;
+        end
       end
     end else begin
       DPCWriteValM = CSRWriteValM;

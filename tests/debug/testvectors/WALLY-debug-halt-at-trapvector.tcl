@@ -69,16 +69,8 @@ riscv.cpu configure -ebreak halt
 message [read_reg dcsr]
 
 # Need to set t3
-step
-step
-step
-step
-step
-step
-step
-step
-set_reg [list t3 1]
-message "PC: [read_reg pc]"
+# set_reg [list t3 1]
+#message "PC: [read_reg pc]"
 
 # Reset. Should already be halted once ebreak is hit.
 resume
@@ -87,6 +79,7 @@ resume
 # we expect to halt on an ebreak, is necessary to force OpenOCD to
 # update it's internal tracking state.
 halt
+set_reg [list mtvec $trap_handler2]
 
 set_reg [list dpc $trap_here]
 message "PC: [read_reg pc]"

@@ -335,7 +335,7 @@ module csr import cvw::*;  #(parameter cvw_t P) (
   if (P.SDEXT_SUPPORTED) begin : debug
     csrd #(P) csrd(.clk, .reset,
       .CSRDWriteM, .CSRAdrM, .CSRWriteValM,
-      .PCSrcM, .FlushM, .StallM, .NextValidPCE, .IEUAdrM, .PCM,
+      .PCSrcM, .FlushM, .StallM, .NextValidPCE, .IEUAdrM, .PCM, .TrapVectorM, .TrapM,
       .PrivilegeModeW,
       .DebugMode, .DebugHaltReq, .DebugResumeReq, .DebugResetHaltReq, .BreakpointFaultM,
       .NextHalt, .NextResume,

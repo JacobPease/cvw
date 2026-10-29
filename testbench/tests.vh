@@ -4208,7 +4208,9 @@ string wally64debug[] = '{
   "WALLY-debug-ex4",
   "WALLY-debug-prv",
   "WALLY-debug-pipeline-state",
-  "WALLY-debug-data1-preserve"
+  "WALLY-debug-data1-preserve",
+  "WALLY-debug-catch-replay",
+  "WALLY-debug-halt-at-trapvector"
 };
 
 string wally64debug_jtag[] = '{
@@ -4229,15 +4231,17 @@ string wally64debug_jtag[] = '{
   "WALLY-debug-ex4",
   "WALLY-debug-prv",
   "WALLY-debug-pipeline-state",
-  "WALLY-debug-data1-preserve"
+  "WALLY-debug-data1-preserve",
+  "WALLY-debug-catch-replay",
+  "WALLY-debug-halt-at-trapvector"
 };
 
 // string wally64debug[] = '{
 //   `DEBUGELFS,
-//   "WALLY-debug-01"
+//   "WALLY-debug-halt-at-trapvector"
 // };
 
 // string wally64debug_jtag[] = '{
 //   `DEBUGTV,
-//   "WALLY-debug-01"
+//   "WALLY-debug-halt-at-trapvector"
 // };

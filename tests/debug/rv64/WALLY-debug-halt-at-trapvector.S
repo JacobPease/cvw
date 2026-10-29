@@ -12,12 +12,7 @@ rvtest_entry_point:
    li t3, 0
    // Regular trap handler used to enable ebreak
    la t0, trap_handler
-
-   // If the debugger has written something different to t3, don't
-   // take the branch and write the new trap handler.
-   beqz t3, 1f
-   la t0, trap_handler2
-1: csrw mtvec, t0
+   csrw mtvec, t0
 
 // Ebreak after DCSR configuration upon reset halt
 do_ebreak:
