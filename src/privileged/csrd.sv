@@ -152,9 +152,9 @@ module csrd import cvw::*;  #(parameter cvw_t P) (
   always_comb begin
     if (CSRDWriteM & DebugMode) begin
       DPCWriteValM = CSRWriteValM;
-    end else if (DebugHaltReq & NextHalt | DebugEBreak) begin
+    end else if (DebugEBreak) begin
       DPCWriteValM = PCM;
-    end else if (step & NextHalt) begin
+    end else if (step & NextHalt | DebugHaltReq & NextHalt) begin
       if (PCSrcM) begin
         // If this is a branch, jump, or jalr, DPC will point to the
         // actual next valid instruction.
