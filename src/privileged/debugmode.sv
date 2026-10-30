@@ -138,14 +138,14 @@ module debugmode import cvw::*;  #(parameter cvw_t P)(
 
   always_comb begin
     NextHaltCause = '0;
-    if (DebugHaltReq) begin
+    if (ResetHaltReqEnable) begin
+      NextHaltCause = 3'd5;
+    end else if (DebugHaltReq) begin
       NextHaltCause = 3'd3;
     end else if (DebugEBreak) begin
       NextHaltCause = 3'd1;
     end else if (DebugStep & InstrValidM) begin
       NextHaltCause = 3'd4;
-    end else if (ResetHaltReqEnable) begin
-      NextHaltCause = 3'd5;
     end else begin
       NextHaltCause = '0;
     end
