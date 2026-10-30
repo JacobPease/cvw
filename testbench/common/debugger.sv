@@ -518,7 +518,7 @@ module debugger import cvw::*;  #(parameter cvw_t P)(
       end else if (state == DMREG_READ | state == ABSTRACT_READ) begin
         case (last_addr)
           7'h11: begin
-            if (expected[33:8] == actual[33:8] & expected[6] == expected[6]) begin
+            if (expected[33:8] == actual[33:8] & expected[6] == actual[6]) begin
               // Ignore hasresethaltreq differences. Spike doesn't seem to implement it.
               result = 1;
             end else begin
