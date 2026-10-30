@@ -63,9 +63,9 @@ module debugmode import cvw::*;  #(parameter cvw_t P)(
 
   // TODO: Add triggers to this list.
   assign HaltCondition = DebugHaltReq & InstrValidM & ~StallW |                  // Halt request
-                         DebugEBreak |                                           // Ebreak
+                         DebugEBreak & ~StallW |                                 // Ebreak
                          DebugStep & InstrValidM & ~DebugResumeFlush & ~StallW | // Stepping
-                         ResetHaltReqValid;                                      // Reset Halt Request
+                         ResetHaltReqValid;                                      // Reset Halt Request (needs ~StallW?)
 
   // Trying a simpler state machine logic
   always_comb begin

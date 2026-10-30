@@ -4211,7 +4211,8 @@ string wally64debug[] = '{
   "WALLY-debug-data1-preserve",
   "WALLY-debug-catch-replay",
   "WALLY-debug-halt-at-trapvector",
-  "WALLY-debug-cause-priority"
+  "WALLY-debug-cause-priority",
+  "WALLY-debug-ebreak-stallw"
 };
 
 string wally64debug_jtag[] = '{
@@ -4235,5 +4236,6 @@ string wally64debug_jtag[] = '{
   "WALLY-debug-data1-preserve",
   "WALLY-debug-catch-replay",
   "WALLY-debug-halt-at-trapvector",
-  "WALLY-debug-cause-priority"
+  "WALLY-debug-cause-priority",
+  "WALLY-debug-ebreak-stallw"
 };
