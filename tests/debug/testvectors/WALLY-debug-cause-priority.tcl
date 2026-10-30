@@ -259,7 +259,7 @@ proc get_regno {name} {
         return $gpr_abstract($name)
     } elseif {[info exists fpr_abstract($name)]} {
         return $fpr_abstract($name)
-    } else {[info exists csr_abstract($name)]} {
+    } elseif {[info exists csr_abstract($name)]} {
         return $csr_abstract($name)
     }
 
