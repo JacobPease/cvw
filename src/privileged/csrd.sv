@@ -40,6 +40,8 @@ module csrd import cvw::*;  #(parameter cvw_t P) (
   input  logic [P.XLEN-1:0] NextValidPCE,
   input  logic [P.XLEN-1:0] IEUAdrM, PCM,
   input  logic [P.XLEN-1:0] TrapVectorM,
+  input  logic              mretM, sretM,
+  input  logic [P.XLEN-1:0] EPCM,
   input  logic [1:0]        PrivilegeModeW,
   input  logic              DebugMode,
   input  logic              DebugHaltReq, DebugResumeReq,
@@ -159,6 +161,8 @@ module csrd import cvw::*;  #(parameter cvw_t P) (
     end else if (step & NextHalt | DebugHaltReq & NextHalt) begin
       if (TrapM) begin
         DPCWriteValM = TrapVectorM;
+      end else if (mretM | sretM) begin
+        DPCWriteValM = EPCM;
       end else begin
         if (PCSrcM) begin
           // If this is a branch, jump, or jalr, DPC will point to the
