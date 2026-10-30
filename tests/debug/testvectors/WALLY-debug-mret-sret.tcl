@@ -60,6 +60,7 @@ set s_setup   [get_address $objdump_file s_setup]
 set m_target   [get_address $objdump_file m_target]
 set s_target   [get_address $objdump_file s_target]
 
+set post_ebreak_config [get_address $objdump_file post_ebreak_config]
 set trap_handler [get_address $objdump_file trap_handler]
 
 # --------------------------------------------------------------------
@@ -72,6 +73,8 @@ riscv.cpu configure -ebreak halt
 message [read_reg dcsr]
 
 # M-mode section
+resume; halt
+set_reg [list dpc $post_ebreak_config]
 resume; halt
 set_reg [list mtvec $trap_handler]
 set_reg [list dpc $m_setup]

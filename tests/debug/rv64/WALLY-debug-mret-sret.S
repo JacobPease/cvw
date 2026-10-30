@@ -13,6 +13,14 @@ rvtest_entry_point:
    la t0, ebreak_handler
    csrw mtvec, t0
 
+   ebreak
+post_ebreak_config:
+   # Allow all of RAM in S-mode (example for a single NAPOT entry covering 0x8000_0000-0xFFFF_FFFF)
+   li     t0, 0x800fffff >> 2          # pmpaddr0 = base >> 2
+   csrw   pmpaddr0, t0
+   li     t0, 0b00111111               # R=1 W=1 X=1 A=NAPOT L=0 (unlocked)
+   csrw   pmpcfg0, t0
+
    la t0, m_target  # Load target address to return to from machine mode
    csrw mepc, t0    #
    li t0, (1 << 11)
@@ -22,7 +30,7 @@ rvtest_entry_point:
    ebreak
 
 m_setup:
-   csrc mstatus, t1
+   csrc mstatus, t2
    csrs mstatus, t0
 
    mret
@@ -39,7 +47,7 @@ m_target:
    li t2, (1 << 8)
    ebreak
 s_setup: // Debugger progresses to this point and steps through to sret
-   csrc sstatus, t1
+   csrc sstatus, t2
    csrs sstatus, t0
    sret
 
@@ -84,7 +92,7 @@ trap_handler:
 .data
 # Spike memory regions ###############################################
 begin_signature:
-   .fill 1*2, 4, 0xdeadbeef
+   .fill 1*4, 4, 0xdeadbeef
 end_signature:
 
 .section .tohost, "aw", @progbits
