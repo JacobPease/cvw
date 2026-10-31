@@ -151,13 +151,14 @@ module csrd import cvw::*;  #(parameter cvw_t P) (
 
   assign DCSRWriteValM = CSRDWriteM & ~NextHalt ?
                          {CSRWriteValM[15], CSRWriteValM[13], CSRWriteValM[12], CSRWriteValM[11], CSRWriteValM[10],
-                          CSRWriteValM[8:6], CSRWriteValM[2], PrvWriteVal} :
+                         cause, CSRWriteValM[2], PrvWriteVal} :
                          {ebreakm, ebreaks, ebreaku, stepie, stopcount, NextHaltCause, step, NextPrivilegeModeM};
 
   // DPC Mux. Selects the correct DPC based on program execution.
   always_comb begin
     if (CSRDWriteM & DebugMode) begin
-      DPCWriteValM = CSRWriteValM;
+      DPCWriteValM = {CSRWriteValM[P.XLEN-1:2], CSRWriteValM[1] & P.ZCA_SUPPORTED, 1'b0};
+      //DPCWriteValM = CSRWriteValM;
     end else if (DebugEBreak) begin
       DPCWriteValM = PCM;
     end else if (step & NextHalt | DebugHaltReq & NextHalt) begin
