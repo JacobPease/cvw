@@ -43,6 +43,7 @@ module csrd import cvw::*;  #(parameter cvw_t P) (
   input  logic              mretM, sretM,
   input  logic [P.XLEN-1:0] EPCM,
   input  logic [1:0]        PrivilegeModeW,
+  input  logic [1:0]        NextPrivilegeModeM,
   input  logic              DebugMode,
   input  logic              DebugHaltReq, DebugResumeReq,
   input  logic              DebugResetHaltReq,
@@ -90,17 +91,10 @@ module csrd import cvw::*;  #(parameter cvw_t P) (
   logic                     stoptime;  // Hardcoded to 0, but should implement at some point
   logic [2:0]               cause;     // Implemented. Cause of halt
   logic                     v;         // Not implemented - related to virtualization
-  logic                     mprven;    // See note...
+  logic                     mprven;    // Not implemented. Tying to 0
   logic                     nmip;      // Non-maskable interrupt. Tying to 0
   logic                     step;      // Implemented
   logic [1:0]               prv;       // Implemented. Privilege Mode at halt. Set so mode changes when resumed.
-
-  // NOTE: When set to 0, mprven allows MPRV to be ignored while in
-  // DebugMode. This can be added later. For now, tying it to 1
-  // implies that MPRV takes effect if it is set, thus DebugMode can't
-  // alter it's behavior. Since I haven't changed anything related to
-  // privileged modes, I'm setting this to 1 temporarily, implying
-  // that the privilege mode always takes effect.
 
   // debug specification 4.9.1, 0x7b0
   localparam dcsrwidth = ($bits(ebreakm) + $bits(ebreaks) + $bits(ebreaku) +
@@ -115,9 +109,9 @@ module csrd import cvw::*;  #(parameter cvw_t P) (
   logic [dcsrwidth-1:0]     DCSR_REGW;
   logic [P.XLEN-1:0]        DPCWriteValM;
 
-  // Detect writes to Priv Mode for the purpose of changing the
-  // privileged mode upon resume
-  logic PrivModeSet;
+  // dcsr.prv is WARL (Debug Spec 4.9.1). Legalize writes so an
+  // unsupported/reserved encoding can never reach PrivilegeModeW.
+  logic [1:0] PrvWriteVal;
 
   // Ebreak handling signals
   assign DebugEBreakM = ebreakm;
@@ -134,7 +128,7 @@ module csrd import cvw::*;  #(parameter cvw_t P) (
   // assign stopcount = 0;
   assign stoptime = 0;
   assign v = 0;
-  assign mprven = 1;
+  assign mprven = 0;
   assign nmip = 0;
 
   ////////////////////////////////////////////////////////////////////
@@ -147,10 +141,18 @@ module csrd import cvw::*;  #(parameter cvw_t P) (
   assign WriteDCSR = CSRDWriteM & (CSRAdrM == DCSR) | NextHalt;
   assign WriteDPC  = CSRDWriteM & (CSRAdrM == DPC) | NextHalt | NextHalt & TrapM;
 
+  always_comb
+   case (CSRWriteValM[1:0])
+     P.M_MODE: PrvWriteVal = P.M_MODE;
+     P.S_MODE: PrvWriteVal = P.S_SUPPORTED ? P.S_MODE : (P.U_SUPPORTED ? P.U_MODE : P.M_MODE);
+     P.U_MODE: PrvWriteVal = P.U_SUPPORTED ? P.U_MODE : P.M_MODE;
+     default:  PrvWriteVal = prv; // 2'b10 reserved: keep current value
+   endcase
+
   assign DCSRWriteValM = CSRDWriteM & ~NextHalt ?
                          {CSRWriteValM[15], CSRWriteValM[13], CSRWriteValM[12], CSRWriteValM[11], CSRWriteValM[10],
-                          CSRWriteValM[8:6], CSRWriteValM[2], CSRWriteValM[1:0]} :
-                         {ebreakm, ebreaks, ebreaku, stepie, stopcount, NextHaltCause, step, PrivilegeModeW};
+                          CSRWriteValM[8:6], CSRWriteValM[2], PrvWriteVal} :
+                         {ebreakm, ebreaks, ebreaku, stepie, stopcount, NextHaltCause, step, NextPrivilegeModeM};
 
   // DPC Mux. Selects the correct DPC based on program execution.
   always_comb begin
@@ -240,17 +242,9 @@ module csrd import cvw::*;  #(parameter cvw_t P) (
   // Using prv to override the current privileged mode from the
   // debugger.
   ////////////////////////////////////////////////////////////////////
-  always_ff @(posedge clk) begin
-    if (reset) begin
-      PrivModeSet <= 1'b0;
-    end else if (NextResume) begin
-      PrivModeSet <= 1'b0;
-    end else if (DebugMode & CSRDWriteM
-                 & (CSRWriteValM[1:0] != prv) & (CSRAdrM == DCSR)) begin
-      PrivModeSet <= 1'b1;
-    end
-  end
-
-  assign DebugSetPrivMode = PrivModeSet & NextResume;
+  // Debug Spec 4.6: on every resume the privilege mode becomes
+  // dcsr.prv. prv always holds the mode captured at halt unless the
+  // debugger changed it, so loading it unconditionally is correct.
+  assign DebugSetPrivMode = NextResume;
 
 endmodule

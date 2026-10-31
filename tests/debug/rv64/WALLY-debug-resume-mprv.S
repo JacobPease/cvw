@@ -99,7 +99,7 @@ tohost_exit:
 
 .data
 begin_signature:
-   .fill 3, 4, 0xdeadbeef
+   .fill 2*2, 4, 0xdeadbeef
 end_signature:
 
 .section .tohost, "aw", @progbits

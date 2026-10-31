@@ -44,12 +44,12 @@ module privmode import cvw::*;  #(parameter cvw_t P) (
   if (P.U_SUPPORTED) begin : privmode
     // PrivilegeMode FSM
     always_comb begin
-      if (TrapM) begin // Change privilege based on DELEG registers (see 3.1.8)
+      if (DebugSetPrivMode)            NextPrivilegeModeM = DebugPrivilegeMode;
+      else if (TrapM) begin // Change privilege based on DELEG registers (see 3.1.8)
         if (P.S_SUPPORTED & DelegateM) NextPrivilegeModeM = P.S_MODE;
         else                           NextPrivilegeModeM = P.M_MODE;
       end else if (mretM)              NextPrivilegeModeM = STATUS_MPP;
       else     if (sretM)              NextPrivilegeModeM = {1'b0, STATUS_SPP};
-      else     if (DebugSetPrivMode)   NextPrivilegeModeM = DebugPrivilegeMode;
       else                             NextPrivilegeModeM = PrivilegeModeW;
     end
 
