@@ -105,7 +105,7 @@ module debugmode import cvw::*;  #(parameter cvw_t P)(
 
   // Flush before Halt while still running
   assign DebugHaltFlush = NextHalt;
-  assign DebugUseDPC = DebugHaltFlush | DebugResumeFlush;
+  assign DebugUseDPC = DebugResumeFlush;
 
   // Flush after halt when running again.
   always_ff @(posedge clk) begin
